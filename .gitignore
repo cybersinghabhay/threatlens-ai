@@ -224,3 +224,6 @@ __marimo__/
 sample.txt
 baseline.json
 integrity_report.json
+
+# ThreatLens AI directory monitoring artifacts
+directory_baseline.json

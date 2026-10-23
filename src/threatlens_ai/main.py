@@ -1,11 +1,10 @@
 
-"""
-ThreatLens AI
-A cross-platform cybersecurity analysis toolkit.
-"""
-
 import platform
 
+from threatlens_ai.directory_integrity import (
+    compare_directory_with_baseline,
+    save_directory_baseline,
+)
 from threatlens_ai.file_integrity import save_baseline
 from threatlens_ai.integrity_report import (
     export_integrity_report,
@@ -14,84 +13,133 @@ from threatlens_ai.integrity_report import (
 
 
 def main():
-    """Display the startup information and main menu."""
-
+    """Run the ThreatLens AI command-line interface."""
     print("=" * 45)
     print("          ThreatLens AI")
-    print("  AI-Powered Cybersecurity Toolkit")
+    print("      Cybersecurity Utility Toolkit")
     print("=" * 45)
-
-    print(f"Operating System: {platform.system()}")
-    print(f"Python Version: {platform.python_version()}")
-
-    print("\nThreatLens AI has started successfully!")
+    print(f"Operating system: {platform.system()}")
 
     while True:
-        print("\n" + "-" * 45)
-        print(" MAIN MENU")
-        print("-" * 45)
+        print("\nChoose an option:")
         print("1. Save file integrity baseline")
         print("2. Generate file integrity report")
         print("3. Export integrity report to JSON")
         print("4. Exit")
+        print("5. Save directory integrity baseline")
+        print("6. Compare directory against baseline")
 
-        choice = input("\nEnter your choice (1-4): ").strip()
+        choice = input("\nEnter your choice (1-6): ").strip()
 
-        if choice == "1":
-            file_path = input("Enter the file path: ").strip().strip('"')
+        try:
+            if choice == "1":
+                file_path = input("Enter file path: ").strip()
+                baseline_path = input(
+                    "Enter baseline path (default: baseline.json): "
+                ).strip() or "baseline.json"
 
-            try:
-                saved_hash = save_baseline(file_path)
-                print("\nBaseline saved successfully!")
-                print(f"SHA-256: {saved_hash}")
+                file_hash = save_baseline(file_path, baseline_path)
+                print("\nFile baseline saved successfully.")
+                print(f"SHA-256: {file_hash}")
 
-            except (OSError, ValueError) as error:
-                print(f"\nError: {error}")
+            elif choice == "2":
+                file_path = input("Enter file path: ").strip()
+                baseline_path = input(
+                    "Enter baseline path (default: baseline.json): "
+                ).strip() or "baseline.json"
 
-        elif choice == "2":
-            file_path = input("Enter the file path: ").strip().strip('"')
+                report = generate_integrity_report(
+                    file_path, baseline_path
+                )
 
-            try:
-                report = generate_integrity_report(file_path)
+                print("\nFile Integrity Report")
+                print("-" * 30)
+                for key, value in report.items():
+                    print(f"{key}: {value}")
 
-                print("\n" + "-" * 45)
-                print(" FILE INTEGRITY REPORT")
-                print("-" * 45)
-                print(f"File: {report['file_path']}")
-                print(f"Expected SHA-256: {report['expected_sha256']}")
-                print(f"Current SHA-256:  {report['current_sha256']}")
-                print(f"Status: {report['status']}")
-                print(f"Checked at (UTC): {report['checked_at_utc']}")
+            elif choice == "3":
+                file_path = input("Enter file path: ").strip()
+                baseline_path = input(
+                    "Enter baseline path (default: baseline.json): "
+                ).strip() or "baseline.json"
+                output_path = input(
+                    "Enter report output path "
+                    "(default: integrity_report.json): "
+                ).strip() or "integrity_report.json"
 
-            except (OSError, ValueError, KeyError) as error:
-                print(f"\nError: {error}")
+                report = generate_integrity_report(
+                    file_path, baseline_path
+                )
+                saved_path = export_integrity_report(
+                    report, output_path
+                )
 
-        elif choice == "3":
-            file_path = input("Enter the file path: ").strip().strip('"')
-            output_path = input(
-                "Enter output path [integrity_report.json]: "
-            ).strip().strip('"')
-
-            if not output_path:
-                output_path = "integrity_report.json"
-
-            try:
-                report = generate_integrity_report(file_path)
-                saved_path = export_integrity_report(report, output_path)
-
-                print("\nIntegrity report exported successfully!")
+                print("\nIntegrity report exported successfully.")
                 print(f"Report saved to: {saved_path}")
-                print(f"Status: {report['status']}")
 
-            except (OSError, ValueError, KeyError) as error:
-                print(f"\nError: {error}")
+            elif choice == "4":
+                print("Thank you for using ThreatLens AI.")
+                break
 
-        elif choice == "4":
-            print("\nThank you for using ThreatLens AI!")
-            break
+            elif choice == "5":
+                directory_path = input(
+                    "Enter directory path to monitor: "
+                ).strip()
+                baseline_path = input(
+                    "Enter baseline output path "
+                    "(default: directory_baseline.json): "
+                ).strip() or "directory_baseline.json"
 
-        else:
-            print("\nInvalid choice. Please enter 1, 2, 3, or 4.")
+                hashes = save_directory_baseline(
+                    directory_path, baseline_path
+                )
+
+                print("\nDirectory baseline saved successfully.")
+                print(f"Files scanned: {len(hashes)}")
+                print(f"Baseline saved to: {baseline_path}")
+
+            elif choice == "6":
+                directory_path = input(
+                    "Enter directory path to compare: "
+                ).strip()
+                baseline_path = input(
+                    "Enter baseline path "
+                    "(default: directory_baseline.json): "
+                ).strip() or "directory_baseline.json"
+
+                changes = compare_directory_with_baseline(
+                    directory_path, baseline_path
+                )
+
+                print("\nDirectory Integrity Results")
+                print("=" * 35)
+
+                for change_type in ("added", "modified", "deleted"):
+                    files = changes[change_type]
+                    print(f"\n{change_type.upper()} ({len(files)}):")
+
+                    if files:
+                        for file_path in files:
+                            print(f"  - {file_path}")
+                    else:
+                        print("  None")
+
+                total_changes = sum(
+                    len(files) for files in changes.values()
+                )
+                if total_changes == 0:
+                    print("\nNo changes detected.")
+                else:
+                    print(f"\nTotal detected changes: {total_changes}")
+
+            else:
+                print("Invalid choice. Please enter a number from 1 to 6.")
+
+        except (OSError, ValueError, KeyError) as error:
+            print(f"\nError: {error}")
+
+        except KeyboardInterrupt:
+            print("\nOperation cancelled by user.")
 
 
 if __name__ == "__main__":
