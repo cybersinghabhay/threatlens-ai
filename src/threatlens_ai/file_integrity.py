@@ -69,11 +69,12 @@ def save_baseline(file_path: str, baseline_path: str = "baseline.json") -> str:
     return file_hash
 
 
-def check_integrity(
+
+def get_integrity_details(
     file_path: str,
     baseline_path: str = "baseline.json",
-) -> str:
-    """Compare a file's current hash with its saved baseline."""
+) -> dict:
+    """Return detailed information about a file's integrity."""
     target = Path(file_path).resolve()
     baseline_file = Path(baseline_path)
 
@@ -86,14 +87,31 @@ def check_integrity(
         )
 
     data = _load_baseline(baseline_file)
-    saved_hash = data.get(str(target))
+    expected_hash = data.get(str(target))
 
-    if saved_hash is None:
+    if expected_hash is None:
         raise KeyError("This file has no saved baseline.")
 
     current_hash = calculate_sha256(str(target))
 
-    if current_hash == saved_hash:
-        return "INTEGRITY OK: No changes detected."
+    if current_hash == expected_hash:
+        status = "INTEGRITY OK: No changes detected."
+    else:
+        status = "WARNING: File modification detected!"
 
-    return "WARNING: File modification detected!"
+    return {
+        "file_path": str(target),
+        "expected_sha256": expected_hash,
+        "current_sha256": current_hash,
+        "status": status,
+    }
+
+
+def check_integrity(
+    file_path: str,
+    baseline_path: str = "baseline.json",
+) -> str:
+    """Compare a file's current hash with its saved baseline."""
+    details = get_integrity_details(file_path, baseline_path)
+    return details["status"]
+
