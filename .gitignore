@@ -223,3 +223,4 @@ __marimo__/
 # ThreatLens AI local test artifacts
 sample.txt
 baseline.json
+integrity_report.json

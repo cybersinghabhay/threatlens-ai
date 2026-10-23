@@ -7,7 +7,10 @@ A cross-platform cybersecurity analysis toolkit.
 import platform
 
 from threatlens_ai.file_integrity import save_baseline
-from threatlens_ai.integrity_report import generate_integrity_report
+from threatlens_ai.integrity_report import (
+    export_integrity_report,
+    generate_integrity_report,
+)
 
 
 def main():
@@ -29,9 +32,10 @@ def main():
         print("-" * 45)
         print("1. Save file integrity baseline")
         print("2. Generate file integrity report")
-        print("3. Exit")
+        print("3. Export integrity report to JSON")
+        print("4. Exit")
 
-        choice = input("\nEnter your choice (1-3): ").strip()
+        choice = input("\nEnter your choice (1-4): ").strip()
 
         if choice == "1":
             file_path = input("Enter the file path: ").strip().strip('"')
@@ -63,11 +67,31 @@ def main():
                 print(f"\nError: {error}")
 
         elif choice == "3":
+            file_path = input("Enter the file path: ").strip().strip('"')
+            output_path = input(
+                "Enter output path [integrity_report.json]: "
+            ).strip().strip('"')
+
+            if not output_path:
+                output_path = "integrity_report.json"
+
+            try:
+                report = generate_integrity_report(file_path)
+                saved_path = export_integrity_report(report, output_path)
+
+                print("\nIntegrity report exported successfully!")
+                print(f"Report saved to: {saved_path}")
+                print(f"Status: {report['status']}")
+
+            except (OSError, ValueError, KeyError) as error:
+                print(f"\nError: {error}")
+
+        elif choice == "4":
             print("\nThank you for using ThreatLens AI!")
             break
 
         else:
-            print("\nInvalid choice. Please enter 1, 2, or 3.")
+            print("\nInvalid choice. Please enter 1, 2, 3, or 4.")
 
 
 if __name__ == "__main__":
