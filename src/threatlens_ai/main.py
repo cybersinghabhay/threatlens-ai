@@ -14,7 +14,10 @@ from threatlens_ai.integrity_report import (
     export_integrity_report,
     generate_integrity_report,
 )
-
+from threatlens_ai.log_report import (
+    export_log_report,
+    generate_log_report,
+)
 
 def main():
     """Run the ThreatLens AI command-line interface."""
@@ -34,8 +37,10 @@ def main():
         print("6. Compare directory against baseline")
         print("7. Generate directory integrity report")
         print("8. Export directory integrity report to JSON")
+        print("9. Analyze a security log file")
+        print("10. Export security log analysis report to JSON")
 
-        choice = input("\nEnter your choice (1-8): ").strip()
+        choice = input("\nEnter your choice (1-10): ").strip()
 
         try:
             if choice == "1":
@@ -181,6 +186,68 @@ def main():
                     saved_path = export_directory_integrity_report(
                         report, output_path
                     )
+            elif choice in ("9", "10"):
+                log_path = input(
+                    "Enter security log file path: "
+                ).strip()
+
+                report = generate_log_report(log_path)
+
+                if choice == "9":
+                    print("\nSecurity Log Analysis Report")
+                    print("=" * 35)
+                    print(f"Log file: {report['file_path']}")
+                    print(
+                        f"Generated at (UTC): "
+                        f"{report['generated_at_utc']}"
+                    )
+
+                    print("\nSummary:")
+                    for key, value in report["summary"].items():
+                        print(f"  {key.replace('_', ' ').capitalize()}: {value}")
+
+                    print("\nSource IP counts:")
+                    if report["source_ip_counts"]:
+                        for ip_address, count in (
+                            report["source_ip_counts"].items()
+                        ):
+                            print(f"  {ip_address}: {count}")
+                    else:
+                        print("  No source IPs found in failed-login events.")
+
+                    print("\nSuspicious events:")
+                    if report["suspicious_events"]:
+                        for event in report["suspicious_events"]:
+                            print(
+                                f"  Line {event['line_number']}: "
+                                f"{event['event_type']} - "
+                                f"{event['message']}"
+                            )
+                    else:
+                        print("  No matching failed-login events detected.")
+
+                    print(
+                        "\nNote: These are rule-based indicators, "
+                        "not proof of an attack."
+                    )
+
+                else:
+                    output_path = input(
+                        "Enter report output path "
+                        "(default: security_log_report.json): "
+                    ).strip() or "security_log_report.json"
+
+                    saved_path = export_log_report(
+                        report,
+                        output_path,
+                    )
+
+                    print("\nSecurity log report exported successfully.")
+                    print(
+                        f"Failed login events: "
+                        f"{report['summary']['failed_login_count']}"
+                    )
+                    print(f"Report saved to: {saved_path}")
 
                     print("\nDirectory integrity report exported.")
                     print(f"Status: {report['status']}")
@@ -188,7 +255,7 @@ def main():
                     print(f"Report saved to: {saved_path}")
 
             else:
-                print("Invalid choice. Please enter a number from 1 to 8.")
+                print("Invalid choice. Please enter a number from 1 to 10.")
 
         except (OSError, ValueError, KeyError) as error:
             print(f"\nError: {error}")
