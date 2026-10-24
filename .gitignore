@@ -227,3 +227,6 @@ integrity_report.json
 
 # ThreatLens AI directory monitoring artifacts
 directory_baseline.json
+
+# ThreatLens AI directory integrity report
+directory_integrity_report.json

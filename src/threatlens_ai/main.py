@@ -5,6 +5,10 @@ from threatlens_ai.directory_integrity import (
     compare_directory_with_baseline,
     save_directory_baseline,
 )
+from threatlens_ai.directory_report import (
+    export_directory_integrity_report,
+    generate_directory_integrity_report,
+)
 from threatlens_ai.file_integrity import save_baseline
 from threatlens_ai.integrity_report import (
     export_integrity_report,
@@ -28,8 +32,10 @@ def main():
         print("4. Exit")
         print("5. Save directory integrity baseline")
         print("6. Compare directory against baseline")
+        print("7. Generate directory integrity report")
+        print("8. Export directory integrity report to JSON")
 
-        choice = input("\nEnter your choice (1-6): ").strip()
+        choice = input("\nEnter your choice (1-8): ").strip()
 
         try:
             if choice == "1":
@@ -132,8 +138,57 @@ def main():
                 else:
                     print(f"\nTotal detected changes: {total_changes}")
 
+            elif choice in ("7", "8"):
+                directory_path = input(
+                    "Enter directory path to report on: "
+                ).strip()
+                baseline_path = input(
+                    "Enter baseline path "
+                    "(default: directory_baseline.json): "
+                ).strip() or "directory_baseline.json"
+
+                report = generate_directory_integrity_report(
+                    directory_path, baseline_path
+                )
+
+                if choice == "7":
+                    print("\nDirectory Integrity Report")
+                    print("=" * 35)
+                    print(f"Directory: {report['directory_path']}")
+                    print(f"Checked at (UTC): {report['checked_at_utc']}")
+                    print(f"Status: {report['status']}")
+                    print(f"Total changes: {report['total_changes']}")
+                    print("\nSummary:")
+
+                    for change_type, count in report["summary"].items():
+                        print(f"  {change_type.capitalize()}: {count}")
+
+                    for change_type, files in report["changes"].items():
+                        print(f"\n{change_type.upper()}:")
+
+                        if files:
+                            for file_path in files:
+                                print(f"  - {file_path}")
+                        else:
+                            print("  None")
+
+                else:
+                    output_path = input(
+                        "Enter report output path "
+                        "(default: directory_integrity_report.json): "
+                    ).strip() or "directory_integrity_report.json"
+
+                    saved_path = export_directory_integrity_report(
+                        report, output_path
+                    )
+
+                    print("\nDirectory integrity report exported.")
+                    print(f"Status: {report['status']}")
+                    print(f"Total changes: {report['total_changes']}")
+                    print(f"Report saved to: {saved_path}")
+
             else:
-                print("Invalid choice. Please enter a number from 1 to 6.")
+                print("Invalid choice. Please enter a number from 1 to 8.")
 
         except (OSError, ValueError, KeyError) as error:
             print(f"\nError: {error}")
