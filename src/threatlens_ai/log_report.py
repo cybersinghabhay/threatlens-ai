@@ -6,27 +6,50 @@ from pathlib import Path
 from threatlens_ai.log_analyzer import analyze_log_file
 
 
-def generate_log_report(log_path: str) -> dict:
+def generate_log_report(
+    log_path: str,
+    failed_login_threshold: int = 5,
+) -> dict:
     """Generate a structured security log analysis report."""
 
-    analysis = analyze_log_file(log_path)
+    analysis = analyze_log_file(
+        log_path,
+        failed_login_threshold=failed_login_threshold,
+    )
+
+    repeated_failed_login_ips = analysis[
+        "repeated_failed_login_ips"
+    ]
 
     return {
         "report_type": "security_log_analysis",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(
+            timezone.utc
+        ).isoformat(),
         "file_path": analysis["file_path"],
         "summary": {
             "total_lines": analysis["total_lines"],
-            "failed_login_count": analysis["failed_login_count"],
+            "failed_login_count": analysis[
+                "failed_login_count"
+            ],
             "warning_count": analysis["warning_count"],
             "error_count": analysis["error_count"],
-            "unique_source_ips": len(analysis["source_ip_counts"]),
+            "unique_source_ips": len(
+                analysis["source_ip_counts"]
+            ),
             "suspicious_event_count": len(
                 analysis["suspicious_events"]
             ),
+            "repeated_failed_login_ip_count": len(
+                repeated_failed_login_ips
+            ),
+            "failed_login_threshold": analysis[
+                "failed_login_threshold"
+            ],
         },
         "source_ip_counts": analysis["source_ip_counts"],
         "suspicious_events": analysis["suspicious_events"],
+        "repeated_failed_login_ips": repeated_failed_login_ips,
     }
 
 

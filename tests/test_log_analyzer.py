@@ -1,4 +1,3 @@
-
 import pytest
 
 from threatlens_ai.log_analyzer import analyze_log_file
@@ -96,3 +95,154 @@ def test_report_contains_line_numbers(tmp_path):
     report = analyze_log_file(str(log_file))
 
     assert report["suspicious_events"][0]["line_number"] == 2
+
+
+def test_detect_repeated_failed_logins(tmp_path):
+    from threatlens_ai.log_analyzer import analyze_log_file
+
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "\n".join(
+            [
+                "Failed password for admin from 192.168.1.50",
+                "Failed password for root from 192.168.1.50",
+                "Failed password for user from 192.168.1.50",
+                "Failed password for admin from 192.168.1.50",
+                "Failed password for root from 192.168.1.50",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert len(result["repeated_failed_login_ips"]) == 1
+    finding = result["repeated_failed_login_ips"][0]
+    assert finding["ip_address"] == "192.168.1.50"
+    assert finding["failed_login_count"] == 5
+    assert finding["severity"] == "medium"
+
+
+def test_no_alert_below_threshold(tmp_path):
+    from threatlens_ai.log_analyzer import analyze_log_file
+
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "Failed password for admin from 192.168.1.50\n"
+        "Failed password for root from 192.168.1.50\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert result["repeated_failed_login_ips"] == []
+
+
+def test_high_severity_for_ten_or_more_failures(tmp_path):
+    from threatlens_ai.log_analyzer import analyze_log_file
+
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "\n".join(
+            [
+                f"Failed password for admin from 192.168.1.80"
+                for _ in range(10)
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    finding = result["repeated_failed_login_ips"][0]
+    assert finding["failed_login_count"] == 10
+    assert finding["severity"] == "high"
+
+
+def test_custom_failed_login_threshold(tmp_path):
+    from threatlens_ai.log_analyzer import analyze_log_file
+
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "\n".join(
+            [
+                "Failed password for admin from 192.168.1.50",
+                "Failed password for root from 192.168.1.50",
+                "Failed password for user from 192.168.1.50",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(
+        str(log_file),
+        failed_login_threshold=3,
+    )
+
+    assert len(result["repeated_failed_login_ips"]) == 1
+    assert result["repeated_failed_login_ips"][0]["failed_login_count"] == 3
+
+
+def test_invalid_failed_login_threshold(tmp_path):
+    from threatlens_ai.log_analyzer import analyze_log_file
+    import pytest
+
+    log_file = tmp_path / "auth.log"
+    log_file.write_text("", encoding="utf-8")
+
+    for invalid_threshold in (0, -1, 2.5, True):
+        with pytest.raises(ValueError, match="positive integer"):
+            analyze_log_file(
+                str(log_file),
+                failed_login_threshold=invalid_threshold,
+            )
+
+
+def test_exactly_five_failed_logins_triggers_medium_alert(tmp_path):
+    """Exactly five failures should trigger a medium alert."""
+    from threatlens_ai.log_analyzer import analyze_log_file
+
+    log_file = tmp_path / "five_failures.log"
+    log_file.write_text(
+        "".join(
+            f"Failed password for admin from 192.168.1.50 port {5000 + i} ssh2\n"
+            for i in range(5)
+        ),
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert result["source_ip_counts"]["192.168.1.50"] == 5
+    assert result["repeated_failed_login_ips"] == [
+        {
+            "ip_address": "192.168.1.50",
+            "failed_login_count": 5,
+            "severity": "medium",
+        }
+    ]
+
+
+def test_exactly_ten_failed_logins_triggers_high_alert(tmp_path):
+    """Exactly ten failures should trigger a high alert."""
+    from threatlens_ai.log_analyzer import analyze_log_file
+
+    log_file = tmp_path / "ten_failures.log"
+    log_file.write_text(
+        "".join(
+            f"Failed password for admin from 192.168.1.50 port {5000 + i} ssh2\n"
+            for i in range(10)
+        ),
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert result["source_ip_counts"]["192.168.1.50"] == 10
+    assert result["repeated_failed_login_ips"] == [
+        {
+            "ip_address": "192.168.1.50",
+            "failed_login_count": 10,
+            "severity": "high",
+        }
+    ]

@@ -19,8 +19,10 @@ from threatlens_ai.log_report import (
     generate_log_report,
 )
 
+
 def main():
     """Run the ThreatLens AI command-line interface."""
+
     print("=" * 45)
     print("          ThreatLens AI")
     print("      Cybersecurity Utility Toolkit")
@@ -50,6 +52,7 @@ def main():
                 ).strip() or "baseline.json"
 
                 file_hash = save_baseline(file_path, baseline_path)
+
                 print("\nFile baseline saved successfully.")
                 print(f"SHA-256: {file_hash}")
 
@@ -60,11 +63,13 @@ def main():
                 ).strip() or "baseline.json"
 
                 report = generate_integrity_report(
-                    file_path, baseline_path
+                    file_path,
+                    baseline_path,
                 )
 
                 print("\nFile Integrity Report")
                 print("-" * 30)
+
                 for key, value in report.items():
                     print(f"{key}: {value}")
 
@@ -79,10 +84,12 @@ def main():
                 ).strip() or "integrity_report.json"
 
                 report = generate_integrity_report(
-                    file_path, baseline_path
+                    file_path,
+                    baseline_path,
                 )
                 saved_path = export_integrity_report(
-                    report, output_path
+                    report,
+                    output_path,
                 )
 
                 print("\nIntegrity report exported successfully.")
@@ -102,7 +109,8 @@ def main():
                 ).strip() or "directory_baseline.json"
 
                 hashes = save_directory_baseline(
-                    directory_path, baseline_path
+                    directory_path,
+                    baseline_path,
                 )
 
                 print("\nDirectory baseline saved successfully.")
@@ -119,7 +127,8 @@ def main():
                 ).strip() or "directory_baseline.json"
 
                 changes = compare_directory_with_baseline(
-                    directory_path, baseline_path
+                    directory_path,
+                    baseline_path,
                 )
 
                 print("\nDirectory Integrity Results")
@@ -138,6 +147,7 @@ def main():
                 total_changes = sum(
                     len(files) for files in changes.values()
                 )
+
                 if total_changes == 0:
                     print("\nNo changes detected.")
                 else:
@@ -153,20 +163,26 @@ def main():
                 ).strip() or "directory_baseline.json"
 
                 report = generate_directory_integrity_report(
-                    directory_path, baseline_path
+                    directory_path,
+                    baseline_path,
                 )
 
                 if choice == "7":
                     print("\nDirectory Integrity Report")
                     print("=" * 35)
                     print(f"Directory: {report['directory_path']}")
-                    print(f"Checked at (UTC): {report['checked_at_utc']}")
+                    print(
+                        f"Checked at (UTC): "
+                        f"{report['checked_at_utc']}"
+                    )
                     print(f"Status: {report['status']}")
                     print(f"Total changes: {report['total_changes']}")
                     print("\nSummary:")
 
                     for change_type, count in report["summary"].items():
-                        print(f"  {change_type.capitalize()}: {count}")
+                        print(
+                            f"  {change_type.capitalize()}: {count}"
+                        )
 
                     for change_type, files in report["changes"].items():
                         print(f"\n{change_type.upper()}:")
@@ -184,14 +200,34 @@ def main():
                     ).strip() or "directory_integrity_report.json"
 
                     saved_path = export_directory_integrity_report(
-                        report, output_path
+                        report,
+                        output_path,
                     )
+
+                    print("\nDirectory integrity report exported.")
+                    print(f"Status: {report['status']}")
+                    print(f"Total changes: {report['total_changes']}")
+                    print(f"Report saved to: {saved_path}")
+
             elif choice in ("9", "10"):
                 log_path = input(
                     "Enter security log file path: "
                 ).strip()
 
-                report = generate_log_report(log_path)
+                threshold_input = input(
+                    "Failed-login alert threshold (default: 5): "
+                ).strip()
+
+                threshold = (
+                    int(threshold_input)
+                    if threshold_input
+                    else 5
+                )
+
+                report = generate_log_report(
+                    log_path,
+                    failed_login_threshold=threshold,
+                )
 
                 if choice == "9":
                     print("\nSecurity Log Analysis Report")
@@ -204,7 +240,10 @@ def main():
 
                     print("\nSummary:")
                     for key, value in report["summary"].items():
-                        print(f"  {key.replace('_', ' ').capitalize()}: {value}")
+                        print(
+                            f"  {key.replace('_', ' ').capitalize()}: "
+                            f"{value}"
+                        )
 
                     print("\nSource IP counts:")
                     if report["source_ip_counts"]:
@@ -213,7 +252,28 @@ def main():
                         ):
                             print(f"  {ip_address}: {count}")
                     else:
-                        print("  No source IPs found in failed-login events.")
+                        print(
+                            "  No source IPs found in failed-login events."
+                        )
+
+                    print("\nRepeated Failed-Login Alerts:")
+                    repeated_ips = report[
+                        "repeated_failed_login_ips"
+                    ]
+
+                    if repeated_ips:
+                        for finding in repeated_ips:
+                            print(
+                                f"  [{finding['severity'].upper()}] "
+                                f"{finding['ip_address']}: "
+                                f"{finding['failed_login_count']} "
+                                "failed-login entries"
+                            )
+                    else:
+                        print(
+                            "  No IP addresses reached the configured "
+                            "failed-login threshold."
+                        )
 
                     print("\nSuspicious events:")
                     if report["suspicious_events"]:
@@ -224,7 +284,9 @@ def main():
                                 f"{event['message']}"
                             )
                     else:
-                        print("  No matching failed-login events detected.")
+                        print(
+                            "  No matching failed-login events detected."
+                        )
 
                     print(
                         "\nNote: These are rule-based indicators, "
@@ -244,18 +306,19 @@ def main():
 
                     print("\nSecurity log report exported successfully.")
                     print(
-                        f"Failed login events: "
+                        "Failed login events: "
                         f"{report['summary']['failed_login_count']}"
+                    )
+                    print(
+                        "Repeated failed-login IPs: "
+                        f"{report['summary']['repeated_failed_login_ip_count']}"
                     )
                     print(f"Report saved to: {saved_path}")
 
-                    print("\nDirectory integrity report exported.")
-                    print(f"Status: {report['status']}")
-                    print(f"Total changes: {report['total_changes']}")
-                    print(f"Report saved to: {saved_path}")
-
             else:
-                print("Invalid choice. Please enter a number from 1 to 10.")
+                print(
+                    "Invalid choice. Please enter a number from 1 to 10."
+                )
 
         except (OSError, ValueError, KeyError) as error:
             print(f"\nError: {error}")
