@@ -246,3 +246,18 @@ def test_exactly_ten_failed_logins_triggers_high_alert(tmp_path):
             "severity": "high",
         }
     ]
+
+
+def test_failed_login_without_ip_is_still_detected(tmp_path):
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "Failed password for admin\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert result["failed_login_count"] == 1
+    assert result["source_ip_counts"] == {}
+    assert len(result["suspicious_events"]) == 1
+    assert result["suspicious_events"][0]["event_type"] == "failed_login"
