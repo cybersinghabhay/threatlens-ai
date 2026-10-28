@@ -12,7 +12,6 @@ def export_html_report(
 
     summary = report.get("summary", {})
     report_type = report.get("report_type", "security_report")
-
     title = "ThreatLens AI Security Report"
     generated_at = report.get(
         "generated_at_utc",
@@ -20,7 +19,9 @@ def export_html_report(
     )
     source_file = report.get("file_path", "Not provided")
 
+    # Build summary cards.
     summary_cards = ""
+
     for label, key in [
         ("Total Log Lines", "total_lines"),
         ("Failed Logins", "failed_login_count"),
@@ -31,6 +32,7 @@ def export_html_report(
     ]:
         value = html.escape(str(summary.get(key, 0)))
         safe_label = html.escape(label)
+
         summary_cards += f"""
         <div class="card">
             <span class="card-label">{safe_label}</span>
@@ -38,14 +40,27 @@ def export_html_report(
         </div>
         """
 
+    # Build rows for repeated failed-login IPs.
+    # Support both current analyzer fields and legacy field names.
     repeated_ips = report.get("repeated_failed_login_ips", [])
     repeated_ip_rows = ""
 
     for item in repeated_ips:
         if isinstance(item, dict):
-            ip = html.escape(str(item.get("ip", "Unknown")))
-            count = html.escape(str(item.get("count", "Unknown")))
-            severity = html.escape(str(item.get("severity", "Unknown")))
+            ip_value = item.get(
+                "ip_address",
+                item.get("ip", "Unknown"),
+            )
+            count_value = item.get(
+                "failed_login_count",
+                item.get("count", "Unknown"),
+            )
+            severity_value = item.get("severity", "Unknown")
+
+            ip = html.escape(str(ip_value))
+            count = html.escape(str(count_value))
+            severity = html.escape(str(severity_value))
+
             repeated_ip_rows += f"""
             <tr>
                 <td>{ip}</td>
@@ -55,15 +70,21 @@ def export_html_report(
             """
         else:
             repeated_ip_rows += f"""
-            <tr><td>{html.escape(str(item))}</td>
-            <td>Not provided</td><td>Not provided</td></tr>
+            <tr>
+                <td>{html.escape(str(item))}</td>
+                <td>Not provided</td>
+                <td>Not provided</td>
+            </tr>
             """
 
     if not repeated_ip_rows:
         repeated_ip_rows = (
-            '<tr><td colspan="3">No repeated failed-login IPs reported.</td></tr>'
+            '<tr><td colspan="3">'
+            "No repeated failed-login IPs reported."
+            "</td></tr>"
         )
 
+    # Build rows for suspicious events.
     events = report.get("suspicious_events", [])
     event_rows = ""
 
@@ -73,7 +94,10 @@ def export_html_report(
 
         line_number = html.escape(str(event.get("line_number", "—")))
         event_type = html.escape(str(event.get("event_type", "Unknown")))
-        message = html.escape(str(event.get("message", event.get("line", "—"))))
+        message = html.escape(
+            str(event.get("message", event.get("line", "—")))
+        )
+
         event_rows += f"""
         <tr>
             <td>{line_number}</td>
@@ -84,14 +108,17 @@ def export_html_report(
 
     if not event_rows:
         event_rows = (
-            '<tr><td colspan="3">No suspicious events reported.</td></tr>'
+            '<tr><td colspan="3">'
+            "No suspicious events reported."
+            "</td></tr>"
         )
 
+    # Escape report metadata before inserting it into HTML.
     safe_report_type = html.escape(str(report_type))
     safe_generated_at = html.escape(str(generated_at))
     safe_source_file = html.escape(str(source_file))
 
-    # Keep a complete escaped JSON view for details not shown in the dashboard.
+    # Include a safely escaped JSON view of the complete report.
     safe_json = html.escape(
         json.dumps(report, indent=4, ensure_ascii=False)
     )
@@ -199,7 +226,11 @@ def export_html_report(
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>Source IP</th><th>Failed Logins</th><th>Severity</th></tr>
+                    <tr>
+                        <th>Source IP</th>
+                        <th>Failed Logins</th>
+                        <th>Severity</th>
+                    </tr>
                 </thead>
                 <tbody>{repeated_ip_rows}</tbody>
             </table>
@@ -211,7 +242,11 @@ def export_html_report(
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>Line</th><th>Event Type</th><th>Details</th></tr>
+                    <tr>
+                        <th>Line</th>
+                        <th>Event Type</th>
+                        <th>Details</th>
+                    </tr>
                 </thead>
                 <tbody>{event_rows}</tbody>
             </table>
@@ -226,17 +261,16 @@ def export_html_report(
     </section>
 
     <footer>
-        This report summarizes tool-generated findings. Verify important findings
-        against the original logs and other available evidence.
+        This report summarizes tool-generated findings. Verify important
+        findings against the original logs and other available evidence.
     </footer>
 </body>
 </html>
 """
 
-    
+    # Prevent the HTML report from overwriting its source security log.
     report_file = Path(output_path)
     report_destination = report_file.resolve()
-
     source_path = report.get("file_path")
 
     if (
@@ -254,4 +288,3 @@ def export_html_report(
     report_file.write_text(html_content, encoding="utf-8")
 
     return str(report_file.resolve())
-

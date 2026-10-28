@@ -137,3 +137,31 @@ def test_html_report_does_not_overwrite_source_log(tmp_path):
         export_html_report(report, str(source_log))
 
     assert source_log.read_text(encoding="utf-8") == original_content
+
+
+def test_html_report_displays_actual_analyzer_field_names(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "summary": {
+            "failed_login_count": 8,
+            "unique_source_ips": 1,
+        },
+        "repeated_failed_login_ips": [
+            {
+                "ip_address": "192.0.2.25",
+                "failed_login_count": 8,
+                "severity": "medium",
+            }
+        ],
+    }
+
+    output_file = tmp_path / "actual_fields_report.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "192.0.2.25" in content
+    assert "8" in content
+    assert "medium" in content
+    assert "Unknown" not in content
