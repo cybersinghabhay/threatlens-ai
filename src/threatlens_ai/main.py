@@ -18,7 +18,7 @@ from threatlens_ai.log_report import (
     export_log_report,
     generate_log_report,
 )
-
+from threatlens_ai.finding_explainer import explain_finding
 
 def main():
     """Run the ThreatLens AI command-line interface."""
@@ -41,8 +41,9 @@ def main():
         print("8. Export directory integrity report to JSON")
         print("9. Analyze a security log file")
         print("10. Export security log analysis report to JSON")
+        print("11. Explain a security finding")
 
-        choice = input("\nEnter your choice (1-10): ").strip()
+        choice = input("\nEnter your choice (1-11): ").strip()
 
         try:
             if choice == "1":
@@ -315,9 +316,53 @@ def main():
                     )
                     print(f"Report saved to: {saved_path}")
 
+            elif choice == "11":
+                print("\nExplain a Security Finding")
+                print("-" * 35)
+                print("1. Repeated failed login")
+                print("2. File modified")
+                print("3. Other / unknown event")
+
+                event_choice = input("Choose an event type (1-3): ").strip()
+
+                event_types = {
+                    "1": "repeated_failed_login",
+                    "2": "file_modified",
+                    "3": "unknown_event",
+                }
+
+                event_type = event_types.get(event_choice)
+
+                if event_type is None:
+                    print("Invalid event type selection.")
+                else:
+                    severity = input(
+                        "Enter severity (low/medium/high/unknown): "
+                    ).strip().lower() or "unknown"
+
+                    finding = {
+                        "event_type": event_type,
+                        "severity": severity,
+                    }
+
+                    explanation = explain_finding(finding)
+
+                    print("\nFinding Explanation")
+                    print("-" * 35)
+                    print(f"Event type: {explanation['event_type']}")
+                    print(f"Severity: {explanation['severity']}")
+                    print(f"Explanation: {explanation['explanation']}")
+                    print(
+                        "Recommended action: "
+                        f"{explanation['recommended_action']}"
+                    )
+                    print(
+                        f"AI-generated: {explanation['is_ai_generated']}"
+                    )
+
             else:
                 print(
-                    "Invalid choice. Please enter a number from 1 to 10."
+                    "Invalid choice. Please enter a number from 1 to 11."
                 )
 
         except (OSError, ValueError, KeyError) as error:
