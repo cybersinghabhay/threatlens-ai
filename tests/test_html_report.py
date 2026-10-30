@@ -165,3 +165,77 @@ def test_html_report_displays_actual_analyzer_field_names(tmp_path):
     assert "8" in content
     assert "medium" in content
     assert "Unknown" not in content
+
+
+def test_html_report_displays_finding_explanations(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "explained_findings": [
+            {
+                "event_type": "repeated_failed_login",
+                "ip_address": "192.0.2.10",
+                "failed_login_count": 12,
+                "severity": "high",
+                "explanation": "Possible brute-force activity detected.",
+                "recommended_action": "Review authentication logs.",
+                "is_ai_generated": False,
+            }
+        ],
+    }
+
+    output_file = tmp_path / "security_report.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Finding Explanations" in content
+    assert "repeated_failed_login" in content
+    assert "192.0.2.10" in content
+    assert "Possible brute-force activity detected." in content
+    assert "Review authentication logs." in content
+    assert "Rule-based" in content
+
+
+def test_html_report_handles_empty_explanations(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "explained_findings": [],
+    }
+
+    output_file = tmp_path / "security_report.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "No finding explanations available." in content
+
+
+def test_html_report_escapes_malicious_finding_content(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "explained_findings": [
+            {
+                "event_type": "<script>alert('test')</script>",
+                "ip_address": "<img src=x onerror=alert(1)>",
+                "failed_login_count": 5,
+                "severity": "high",
+                "explanation": "<script>malicious()</script>",
+                "recommended_action": "<img src=x onerror=alert(1)>",
+                "is_ai_generated": False,
+            }
+        ],
+    }
+
+    output_file = tmp_path / "security_report.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "<script>alert('test')</script>" not in content
+    assert "<script>malicious()</script>" not in content
+    assert "<img src=x onerror=alert(1)>" not in content
+    assert "&lt;script&gt;" in content
+    assert "&lt;img" in content

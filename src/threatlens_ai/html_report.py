@@ -113,6 +113,76 @@ def export_html_report(
             "</td></tr>"
         )
 
+    # Build finding explanation cards.
+    explained_findings = report.get("explained_findings", [])
+    explanation_cards = ""
+
+    for finding in explained_findings:
+        if not isinstance(finding, dict):
+            continue
+
+        ip_value = finding.get(
+            "ip_address",
+            finding.get("ip", "Not provided"),
+        )
+        count_value = finding.get(
+            "failed_login_count",
+            finding.get("count", "Not provided"),
+        )
+
+        event_type = html.escape(
+            str(finding.get("event_type", "Unknown"))
+        )
+        ip = html.escape(str(ip_value))
+        count = html.escape(str(count_value))
+        severity = html.escape(
+            str(finding.get("severity", "Unknown"))
+        )
+        explanation = html.escape(
+            str(finding.get("explanation", "No explanation provided."))
+        )
+        recommended_action = html.escape(
+            str(
+                finding.get(
+                    "recommended_action",
+                    "No recommended action provided.",
+                )
+            )
+        )
+        is_ai_generated = finding.get("is_ai_generated", False)
+        explanation_source = (
+            "AI-generated"
+            if is_ai_generated is True
+            else "Rule-based"
+        )
+        safe_explanation_source = html.escape(explanation_source)
+
+        explanation_cards += f"""
+        <div class="finding-card">
+            <div class="finding-header">
+                <h3>{event_type}</h3>
+                <span class="severity">{severity}</span>
+            </div>
+            <p><strong>Source IP:</strong> {ip}</p>
+            <p><strong>Failed login attempts:</strong> {count}</p>
+            <p><strong>Explanation:</strong> {explanation}</p>
+            <p><strong>Recommended action:</strong>
+                {recommended_action}
+            </p>
+            <p class="explanation-source">
+                <strong>Explanation type:</strong>
+                {safe_explanation_source}
+            </p>
+        </div>
+        """
+
+    if not explanation_cards:
+        explanation_cards = (
+            '<p class="empty-state">'
+            "No finding explanations available."
+            "</p>"
+        )
+
     # Escape report metadata before inserting it into HTML.
     safe_report_type = html.escape(str(report_type))
     safe_generated_at = html.escape(str(generated_at))
@@ -189,6 +259,36 @@ def export_html_report(
         }}
         th {{ background: #edf1f6; }}
         .message {{ overflow-wrap: anywhere; }}
+        .finding-card {{
+            background: #f7f9fc;
+            border: 1px solid #dce2ea;
+            border-left: 4px solid #315b91;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 14px 0;
+            overflow-wrap: anywhere;
+        }}
+        .finding-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }}
+        .finding-header h3 {{ margin: 0; }}
+        .severity {{
+            background: #edf1f6;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }}
+        .explanation-source {{
+            color: #526174;
+            font-size: 0.9rem;
+        }}
+        .empty-state {{
+            color: #526174;
+        }}
         details {{ margin-top: 20px; }}
         pre {{
             white-space: pre-wrap;
@@ -238,6 +338,11 @@ def export_html_report(
     </section>
 
     <section>
+        <h2>Finding Explanations &amp; Recommended Actions</h2>
+        {explanation_cards}
+    </section>
+
+    <section>
         <h2>Suspicious Events</h2>
         <div class="table-wrap">
             <table>
@@ -263,6 +368,8 @@ def export_html_report(
     <footer>
         This report summarizes tool-generated findings. Verify important
         findings against the original logs and other available evidence.
+        Explanations are informational and do not independently confirm
+        malicious activity.
     </footer>
 </body>
 </html>
