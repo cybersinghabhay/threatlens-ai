@@ -261,3 +261,65 @@ def test_failed_login_without_ip_is_still_detected(tmp_path):
     assert result["source_ip_counts"] == {}
     assert len(result["suspicious_events"]) == 1
     assert result["suspicious_events"][0]["event_type"] == "failed_login"
+
+
+def test_extract_timestamp_from_failed_login(tmp_path):
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "2026-10-30 10:05:12 Failed password for admin "
+        "from 192.0.2.10\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    event = result["suspicious_events"][0]
+
+    assert event["timestamp"] == "2026-10-30T10:05:12"
+    assert event["line_number"] == 1
+    assert event["event_type"] == "failed_login"
+
+
+def test_failed_login_without_timestamp_returns_none(tmp_path):
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "Failed password for admin from 192.0.2.10\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    event = result["suspicious_events"][0]
+
+    assert event["timestamp"] is None
+
+
+def test_invalid_timestamp_returns_none(tmp_path):
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(
+        "2026-13-40 25:70:90 Failed password for admin "
+        "from 192.0.2.10\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    event = result["suspicious_events"][0]
+
+    assert event["timestamp"] is None
+
+
+def test_timestamp_extraction_preserves_original_message(tmp_path):
+    original_message = (
+        "2026-10-30 10:05:12 Failed password for admin "
+        "from 192.0.2.10"
+    )
+
+    log_file = tmp_path / "auth.log"
+    log_file.write_text(original_message + "\n", encoding="utf-8")
+
+    result = analyze_log_file(str(log_file))
+
+    event = result["suspicious_events"][0]
+
+    assert event["message"] == original_message

@@ -1,6 +1,7 @@
 
 import re
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 
@@ -16,6 +17,32 @@ FAILED_LOGIN_PATTERNS = [
 IP_ADDRESS_PATTERN = re.compile(
     r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
 )
+
+# Recognize YYYY-MM-DD HH:MM:SS timestamps.
+TIMESTAMP_PATTERN = re.compile(
+    r"\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\b"
+)
+
+
+def extract_timestamp(log_line: str):
+    """Extract and validate a timestamp from a log line."""
+
+    match = TIMESTAMP_PATTERN.search(log_line)
+
+    if match is None:
+        return None
+
+    timestamp_text = match.group()
+
+    try:
+        parsed_timestamp = datetime.strptime(
+            timestamp_text,
+            "%Y-%m-%d %H:%M:%S",
+        )
+    except ValueError:
+        return None
+
+    return parsed_timestamp.isoformat()
 
 
 def analyze_log_file(
@@ -66,6 +93,9 @@ def analyze_log_file(
             if not text:
                 continue
 
+            # Extract a timestamp from the log line.
+            timestamp = extract_timestamp(text)
+
             # Check whether the line indicates a failed login.
             is_failed_login = any(
                 pattern.search(text)
@@ -76,6 +106,7 @@ def analyze_log_file(
                 failed_login_count += 1
 
                 suspicious_events.append({
+                    "timestamp": timestamp,
                     "line_number": line_number,
                     "event_type": "failed_login",
                     "message": text,
