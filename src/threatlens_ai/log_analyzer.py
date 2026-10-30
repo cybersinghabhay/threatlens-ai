@@ -12,6 +12,10 @@ FAILED_LOGIN_PATTERNS = [
     re.compile(r"failed login", re.IGNORECASE),
     re.compile(r"invalid user", re.IGNORECASE),
 ]
+# Common log messages indicating successful authentication.
+SUCCESSFUL_LOGIN_PATTERNS = [
+    re.compile(r"\baccepted password for\b", re.IGNORECASE),
+]
 
 # Extract IPv4-style addresses from matching log lines.
 IP_ADDRESS_PATTERN = re.compile(
@@ -115,6 +119,19 @@ def analyze_log_file(
                 # Count IP addresses found in failed-login lines.
                 for ip_address in IP_ADDRESS_PATTERN.findall(text):
                     source_ip_counts[ip_address] += 1
+                # Check whether the line indicates a successful login.
+            is_successful_login = any(
+                pattern.search(text)
+                for pattern in SUCCESSFUL_LOGIN_PATTERNS
+            )
+
+            if is_successful_login:
+                suspicious_events.append({
+                    "timestamp": timestamp,
+                    "line_number": line_number,
+                    "event_type": "successful_login",
+                    "message": text,
+                })
 
             # Count warnings.
             if re.search(
