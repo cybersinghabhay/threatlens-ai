@@ -133,13 +133,20 @@ def analyze_log_file(
                     "message": text,
                 })
 
-            # Count warnings.
+            # Detect and record warning events.
             if re.search(
                 r"\bwarning\b|\bwarn\b",
                 text,
                 re.IGNORECASE,
             ):
                 warning_count += 1
+
+                suspicious_events.append({
+                    "timestamp": timestamp,
+                    "line_number": line_number,
+                    "event_type": "warning",
+                    "message": text,
+                })
 
             # Count errors and critical events.
             if re.search(

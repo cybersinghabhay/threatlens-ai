@@ -347,3 +347,27 @@ def test_detect_successful_login(tmp_path):
         "2026-10-30 10:06:02 Accepted password for admin "
         "from 192.0.2.10"
     )
+
+
+def test_detect_warning_event(tmp_path):
+    log_file = tmp_path / "auth.log"
+
+    log_file.write_text(
+        "2026-10-30 10:07:15 WARNING: "
+        "Unusual authentication activity detected\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert len(result["suspicious_events"]) == 1
+
+    event = result["suspicious_events"][0]
+
+    assert event["timestamp"] == "2026-10-30T10:07:15"
+    assert event["line_number"] == 1
+    assert event["event_type"] == "warning"
+    assert event["message"] == (
+        "2026-10-30 10:07:15 WARNING: "
+        "Unusual authentication activity detected"
+    )
