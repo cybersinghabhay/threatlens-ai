@@ -2,61 +2,67 @@
 
 ### AI-Ready Cybersecurity Investigation & Threat Analysis Toolkit
 
-\<p align="center">
-&#x20; \<strong>Detect. Analyze. Investigate. Understand.\</strong>
-\</p>
+<p align="center">
+  **Detect. Analyze. Investigate. Understand.**
+</p>
 
-\<p align="center">
-&#x20; A cross-platform cybersecurity toolkit designed to help security enthusiasts and analysts investigate suspicious activity, monitor file integrity, analyze security logs, and generate structured investigation reports.
-\</p>
+<p align="center">
+  A modular, cross-platform cybersecurity toolkit for file integrity monitoring, security log analysis, suspicious activity detection, and structured digital investigations.
+</p>
 
-\<p align="center">
-&#x20; ![Python]\([https://img.shields.io/badge/Python-3.14+-blue?logo=python&logoColor=white](https://img.shields.io/badge/Python-3.14+-blue?logo=python\&logoColor=white))
-&#x20; ![Platform]\([https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey))
-&#x20; ![License]\([https://img.shields.io/badge/License-MIT-green](https://img.shields.io/badge/License-MIT-green))
-&#x20; ![Tests]\([https://img.shields.io/badge/Tests-116%20Passing-brightgreen](https://img.shields.io/badge/Tests-116%20Passing-brightgreen))
-&#x20; ![Status]\([https://img.shields.io/badge/Project-Active%20Development-orange](https://img.shields.io/badge/Project-Active%20Development-orange))
-\</p>
+<p align="center">
+  ![Python](https://img.shields.io/badge/Python-3.14-blue?logo=python&logoColor=white)
+  ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue)
+  ![License](https://img.shields.io/badge/License-MIT-green)
+  ![Tests](https://img.shields.io/badge/Tests-116%20Passing-brightgreen)
+  ![Status](https://img.shields.io/badge/Status-Active%20Development-orange)
+</p>
 
 ---
 
-## 🔍 About the Project
+## 🔍 Overview
 
-**ThreatLens AI** is a modular cybersecurity investigation toolkit that brings together file integrity monitoring, security log analysis, suspicious activity detection, and investigation reporting.
+**ThreatLens AI** is a cybersecurity investigation toolkit developed to bring essential security analysis capabilities together in one modular Python application.
 
-The project aims to make security analysis more accessible by combining traditional security detection techniques with an architecture designed for future AI-assisted investigation.
+It focuses on identifying suspicious activity, monitoring file and directory integrity, analyzing security logs, organizing investigation evidence, and generating structured security reports.
 
-Instead of simply identifying suspicious events, ThreatLens AI focuses on organizing security evidence, assigning initial severity levels, explaining findings, and presenting investigation results in readable reports.
+The project combines traditional rule-based detection with an architecture designed to support future AI-assisted investigation and threat intelligence capabilities.
 
-**Current detection capabilities are rule-based. AI-assisted analysis and threat intelligence integrations are part of the development roadmap.**
+Rather than simply reporting suspicious events, ThreatLens AI aims to help users understand what happened, examine relevant evidence, assess initial severity, and communicate findings through readable reports.
 
-## ⚡ Core Capabilities
+> **Current implementation:** Detection and finding explanations are rule-based. AI-powered analysis and external threat intelligence integrations are planned development milestones.
 
-| Module                    | Capabilities                                                                |
-| ------------------------- | --------------------------------------------------------------------------- |
-| 🔐 File Integrity         | SHA-256 hashing, baseline creation, modification detection                  |
-| 📁 Directory Monitoring   | Recursive file monitoring and change detection                              |
-| 📊 Security Log Analysis  | Failed login, successful login, warning, error and critical event detection |
-| 🚨 Threat Detection       | Repeated failed-login detection and severity classification                 |
-| 🎯 Severity Filtering     | Filter security events and findings by severity                             |
-| 🧠 Finding Explainer      | Rule-based explanations and recommended actions                             |
-| 🕒 Investigation Timeline | Chronological ordering of security events                                   |
-| 📄 JSON Reports           | Structured investigation report generation                                  |
-| 🌐 HTML Dashboard         | Browser-readable security reports and interactive severity filtering        |
+## ⚡ Key Features
 
-## 🏗️ Project Architecture
+| Module | Functionality |
+|---|---|
+| 🔐 File Integrity Monitoring | SHA-256 hashing, baseline creation, and file modification detection |
+| 📁 Directory Integrity Monitoring | Recursive directory scanning and added, modified, and deleted file detection |
+| 📊 Security Log Analyzer | Detection of failed logins, successful logins, warnings, errors, and critical events |
+| 🚨 Suspicious Activity Detection | Identification of repeated failed login attempts |
+| 🎯 Severity Classification | Initial severity assignment to detected security events and findings |
+| 🔎 Severity Filtering | Filter events and findings by severity without modifying original evidence |
+| 🧠 Finding Explainer | Rule-based explanations and recommended actions |
+| 🕒 Investigation Timeline | Chronological organization of security events |
+| 📄 JSON Reporting | Structured investigation reports for further processing |
+| 🌐 HTML Security Dashboard | Browser-readable reports with interactive severity filtering |
+
+## 🏗️ Architecture
+
+ThreatLens AI follows a modular architecture that separates detection, investigation, and reporting responsibilities.
 
 ```text
 ThreatLens AI
 │
-├── File Integrity Monitoring
+├── File Integrity Module
 │   ├── SHA-256 Hashing
 │   ├── Baseline Management
-│   └── Directory Integrity
+│   └── Directory Integrity Monitoring
 │
 ├── Security Log Analysis
-│   ├── Event Detection
+│   ├── Log Event Detection
 │   ├── Failed Login Analysis
+│   ├── Successful Login Detection
 │   ├── Warning / Error / Critical Events
 │   └── Timestamp Extraction
 │
@@ -64,23 +70,43 @@ ThreatLens AI
 │   ├── Severity Classification
 │   ├── Severity Filtering
 │   ├── Finding Explanations
-│   └── Investigation Timeline
+│   └── Chronological Timeline
 │
 └── Reporting Engine
     ├── JSON Reports
     └── HTML Security Dashboard
 ```
 
+### Design Principles
+
+- **Modularity:** Keep individual security capabilities independent and maintainable.
+- **Evidence preservation:** Filtering and presentation should not modify original investigation evidence.
+- **Separation of concerns:** Keep detection, severity classification, and explanations separate.
+- **Cross-platform compatibility:** Design for Windows and Linux.
+- **Privacy awareness:** Avoid unnecessary exposure of sensitive information.
+- **Human verification:** Treat automated findings as investigation indicators, not definitive proof of an attack.
+
 ## 🖥️ Technology Stack
 
-- **Language:** Python
-- **Testing:** Pytest
-- **Security:** SHA-256, log analysis, file integrity monitoring
-- **Reporting:** JSON, HTML, CSS, JavaScript
-- **Development:** VS Code, Git, GitHub
-- **Platforms:** Windows and Linux
+| Technology | Purpose |
+|---|---|
+| Python | Core application development |
+| Pytest | Automated testing |
+| SHA-256 | File integrity verification |
+| JSON | Structured report generation |
+| HTML / CSS | Security report presentation |
+| JavaScript | Interactive HTML dashboard filtering |
+| Git & GitHub | Version control and project collaboration |
+| VS Code | Development environment |
 
-## 🚀 Getting Started
+## 🚀 Installation & Setup
+
+### Prerequisites
+
+- Python 3.14 (the current development environment)
+- Git
+- Windows or Linux
+- Terminal or PowerShell
 
 ### 1. Clone the repository
 
@@ -96,14 +122,14 @@ cd threatlens-ai
 
 ### 3. Create a virtual environment
 
-**Windows (PowerShell):**
+**Windows — PowerShell**
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
-**Linux:**
+**Linux**
 
 ```bash
 python3 -m venv .venv
@@ -116,7 +142,7 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-### 5. Run ThreatLens AI
+### 5. Launch ThreatLens AI
 
 ```bash
 python -m threatlens_ai.main
@@ -124,7 +150,7 @@ python -m threatlens_ai.main
 
 ## 🧪 Testing
 
-ThreatLens AI uses Pytest for automated testing.
+ThreatLens AI uses **Pytest** to validate its modules and help maintain application reliability.
 
 Run the complete test suite:
 
@@ -132,67 +158,97 @@ Run the complete test suite:
 python -m pytest -v
 ```
 
-The project currently has **116 passing tests**.
+<details>
+<summary><strong>Current testing status</strong></summary>
+
+The latest recorded complete test run reported:
+
+- **116 tests passed**
+- No failing tests in that run.
+
+Test coverage includes file integrity, directory monitoring, log analysis, severity filtering, investigation timelines, and report generation.
+
+</details>
 
 ## 🗺️ Development Roadmap
 
-ThreatLens AI is actively evolving.
+ThreatLens AI is actively evolving. The roadmap reflects completed functionality and planned development.
+
+### Completed
 
 - [x] SHA-256 file integrity monitoring
 - [x] File integrity baseline validation
+- [x] Structured file integrity reports
 - [x] Directory integrity monitoring
+- [x] Added, modified, and deleted file detection
 - [x] Security log analysis
 - [x] Repeated failed-login detection
-- [x] JSON investigation reports
+- [x] Successful login event detection
+- [x] Warning, error, and critical event collection
+- [x] Timestamp extraction
+- [x] JSON security reports
 - [x] HTML security dashboard
 - [x] Rule-based finding explanations
-- [x] Investigation timeline
+- [x] Chronological investigation timeline
 - [x] Security event severity classification
 - [x] Interactive severity filtering
-- [ ] IP address intelligence and classification
+
+### Planned
+
+- [ ] IP address validation and classification
 - [ ] Threat intelligence API integration
 - [ ] AI-assisted security finding analysis
 - [ ] Local AI model integration
-- [ ] Advanced investigation correlation
-- [ ] Expanded automated security testing
+- [ ] Hosted AI model support
+- [ ] Advanced event correlation
+- [ ] Enhanced investigation workflows
+- [ ] Expanded automated testing and documentation
 
-## 🔒 Security & Privacy Principles
+## 🔒 Security & Privacy
 
-Security and privacy are important design considerations.
+Security and privacy are important considerations throughout ThreatLens AI development.
 
-- Avoid exposing credentials, API keys, and sensitive log data.
-- Use synthetic security logs for development and testing.
-- Classify private, loopback, and reserved IP addresses before external enrichment.
-- Keep detection logic separate from AI-generated explanations.
-- Preserve original investigation evidence when applying filters.
-- Treat automated findings as indicators requiring human verification.
+The project follows these principles:
 
-## 🎯 Project Vision
+- Never expose passwords, credentials, API keys, or authentication tokens in reports or source control.
+- Prefer synthetic security logs for development and testing.
+- Validate IP addresses before performing threat intelligence enrichment.
+- Avoid unnecessarily transmitting private, loopback, or reserved IP addresses to external services.
+- Keep security detection independent of AI-generated explanations.
+- Preserve original evidence when filtering or presenting findings.
+- Require human verification before treating automated findings as confirmed malicious activity.
 
-The long-term goal is to evolve ThreatLens AI into a modular cybersecurity investigation platform that combines:
+## 🎯 Long-Term Vision
+
+The vision is to evolve ThreatLens AI into a modular, AI-assisted cybersecurity investigation platform.
+
+Future development will focus on combining:
 
 - Traditional security monitoring and detection.
-- Threat intelligence and contextual enrichment.
+- IP intelligence and threat context enrichment.
 - AI-assisted investigation and finding explanations.
-- Local and hosted AI model support.
-- Structured, evidence-based security reporting.
+- Local and hosted AI model integration.
+- Investigation correlation and evidence analysis.
+- Structured, evidence-based reporting.
+
+The goal is to build a practical toolkit that demonstrates the intersection of **Cybersecurity, Digital Investigation, Python Development, and Artificial Intelligence**.
 
 ## 🤝 Contributions
 
-Suggestions, feature requests, and improvements are welcome.
+Suggestions, bug reports, feature requests, and improvements are welcome.
 
-If you find an issue or have an idea, feel free to open a GitHub issue.
+If you discover an issue or have an idea for improving ThreatLens AI, feel free to open a GitHub Issue.
 
 ## 📜 License
 
-This project is licensed under the [MIT License](LICENSE).
+ThreatLens AI is released under the [MIT License](LICENSE).
 
 ---
 
-\<p align="center">
-&#x20; \<strong>ThreatLens AI — Bringing clarity to cybersecurity investigations.\</strong>
-\</p>
+<p align="center">
 
-\<p align="center">
-&#x20; Built with Python, cybersecurity knowledge, and a vision for AI-assisted security.
-\</p>
+**ThreatLens AI — Bringing clarity to cybersecurity investigations.**
+
+Built with Python, cybersecurity knowledge, and a vision for AI-assisted security.
+
+</p>
