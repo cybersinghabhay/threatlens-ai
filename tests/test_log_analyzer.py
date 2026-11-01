@@ -421,3 +421,53 @@ def test_detect_critical_event(tmp_path):
         "2026-10-30 10:09:45 CRITICAL: "
         "Unauthorized system access detected"
     )
+
+def test_failed_login_has_informational_severity(tmp_path):
+    log_file = tmp_path / "failed.log"
+    log_file.write_text("Failed password for admin", encoding="utf-8")
+
+    result = analyze_log_file(log_file)
+
+    assert result["suspicious_events"][0]["severity"] == "informational"
+
+
+def test_successful_login_has_informational_severity(tmp_path):
+    log_file = tmp_path / "success.log"
+    log_file.write_text("Accepted password for admin", encoding="utf-8")
+
+    result = analyze_log_file(log_file)
+
+    assert result["suspicious_events"][0]["severity"] == "informational"
+
+
+def test_warning_has_low_severity(tmp_path):
+    log_file = tmp_path / "warning.log"
+    log_file.write_text("WARNING: Disk space is low", encoding="utf-8")
+
+    result = analyze_log_file(log_file)
+
+    assert result["suspicious_events"][0]["severity"] == "low"
+
+
+def test_error_has_medium_severity(tmp_path):
+    log_file = tmp_path / "error.log"
+    log_file.write_text("ERROR: Connection failed", encoding="utf-8")
+
+    result = analyze_log_file(log_file)
+
+    assert result["suspicious_events"][0]["severity"] == "medium"
+
+
+def test_critical_has_critical_severity(tmp_path):
+    log_file = tmp_path / "critical.log"
+    log_file.write_text("CRITICAL: Service unavailable", encoding="utf-8")
+
+    result = analyze_log_file(log_file)
+
+    assert result["suspicious_events"][0]["severity"] == "critical"
+
+
+def test_unknown_event_type_has_unknown_severity():
+    from threatlens_ai.log_analyzer import get_event_severity
+
+    assert get_event_severity("unexpected_event") == "unknown"

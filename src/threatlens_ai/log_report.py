@@ -10,13 +10,22 @@ from threatlens_ai.finding_integration import (
 from threatlens_ai.investigation_timeline import (
     sort_events_chronologically,
 )
+from threatlens_ai.severity_filter import (
+    filter_events_by_severity,
+    filter_findings_by_severity,
+    validate_severity_filter,
+)
 
 
 def generate_log_report(
     log_path: str,
     failed_login_threshold: int = 5,
+    severity: str = "all",
 ) -> dict:
     """Generate a structured security log analysis report."""
+
+    # Validate the requested severity filter.
+    selected_severity = validate_severity_filter(severity)
 
     analysis = analyze_log_file(
         log_path,
@@ -31,9 +40,23 @@ def generate_log_report(
         repeated_failed_login_ips
     )
 
-    # Sort collected security events chronologically.
+    # Preserve the complete collection of detected events.
+    suspicious_events = analysis["suspicious_events"]
+
+    # Sort all collected events chronologically.
     investigation_timeline = sort_events_chronologically(
-        analysis["suspicious_events"]
+        suspicious_events
+    )
+
+    # Create separate filtered views without modifying the evidence.
+    filtered_events = filter_events_by_severity(
+        suspicious_events,
+        selected_severity,
+    )
+
+    filtered_findings = filter_findings_by_severity(
+        explained_findings,
+        selected_severity,
     )
 
     return {
@@ -42,6 +65,7 @@ def generate_log_report(
             timezone.utc
         ).isoformat(),
         "file_path": analysis["file_path"],
+        "severity_filter": selected_severity,
         "summary": {
             "total_lines": analysis["total_lines"],
             "failed_login_count": analysis[
@@ -53,20 +77,28 @@ def generate_log_report(
                 analysis["source_ip_counts"]
             ),
             "suspicious_event_count": len(
-                analysis["suspicious_events"]
+                suspicious_events
+            ),
+            "filtered_event_count": len(
+                filtered_events
             ),
             "repeated_failed_login_ip_count": len(
                 repeated_failed_login_ips
+            ),
+            "filtered_finding_count": len(
+                filtered_findings
             ),
             "failed_login_threshold": analysis[
                 "failed_login_threshold"
             ],
         },
         "source_ip_counts": analysis["source_ip_counts"],
-        "suspicious_events": analysis["suspicious_events"],
+        "suspicious_events": suspicious_events,
         "investigation_timeline": investigation_timeline,
+        "filtered_events": filtered_events,
         "repeated_failed_login_ips": repeated_failed_login_ips,
         "explained_findings": explained_findings,
+        "filtered_findings": filtered_findings,
     }
 
 

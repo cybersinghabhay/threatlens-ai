@@ -1,4 +1,3 @@
-
 import json
 
 import pytest
@@ -180,3 +179,97 @@ def test_exported_json_contains_investigation_timeline(tmp_path):
         saved_report["investigation_timeline"][0]["event_type"]
         == "error"
     )
+
+
+def test_log_report_contains_all_events_when_severity_is_all(tmp_path):
+    from threatlens_ai.log_report import generate_log_report
+
+    log_file = tmp_path / "mixed.log"
+    log_file.write_text(
+        "\n".join([
+            "Failed password for admin",
+            "WARNING: Disk space is low",
+            "ERROR: Connection failed",
+            "CRITICAL: Service unavailable",
+        ]),
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(log_file)
+
+    assert report["severity_filter"] == "all"
+    assert len(report["suspicious_events"]) == 4
+    assert len(report["filtered_events"]) == 4
+
+
+def test_log_report_filters_events_by_severity(tmp_path):
+    from threatlens_ai.log_report import generate_log_report
+
+    log_file = tmp_path / "mixed.log"
+    log_file.write_text(
+        "\n".join([
+            "Failed password for admin",
+            "WARNING: Disk space is low",
+            "ERROR: Connection failed",
+            "CRITICAL: Service unavailable",
+        ]),
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(
+        log_file,
+        severity="critical",
+    )
+
+    assert report["severity_filter"] == "critical"
+    assert len(report["filtered_events"]) == 1
+    assert report["filtered_events"][0]["event_type"] == "critical"
+
+
+def test_log_report_preserves_original_events_after_filtering(tmp_path):
+    from threatlens_ai.log_report import generate_log_report
+
+    log_file = tmp_path / "mixed.log"
+    log_file.write_text(
+        "WARNING: Disk space is low\n"
+        "CRITICAL: Service unavailable\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(
+        log_file,
+        severity="critical",
+    )
+
+    assert len(report["suspicious_events"]) == 2
+    assert len(report["investigation_timeline"]) == 2
+    assert len(report["filtered_events"]) == 1
+
+
+def test_log_report_rejects_invalid_severity(tmp_path):
+    from threatlens_ai.log_report import generate_log_report
+
+    log_file = tmp_path / "sample.log"
+    log_file.write_text("WARNING: Test warning", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        generate_log_report(log_file, severity="extreme")
+
+
+def test_log_report_contains_filtered_event_count(tmp_path):
+    from threatlens_ai.log_report import generate_log_report
+
+    log_file = tmp_path / "mixed.log"
+    log_file.write_text(
+        "WARNING: Test warning\n"
+        "CRITICAL: Test critical event\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(
+        log_file,
+        severity="critical",
+    )
+
+    assert report["summary"]["suspicious_event_count"] == 2
+    assert report["summary"]["filtered_event_count"] == 1

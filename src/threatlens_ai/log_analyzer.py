@@ -12,6 +12,7 @@ FAILED_LOGIN_PATTERNS = [
     re.compile(r"failed login", re.IGNORECASE),
     re.compile(r"invalid user", re.IGNORECASE),
 ]
+
 # Common log messages indicating successful authentication.
 SUCCESSFUL_LOGIN_PATTERNS = [
     re.compile(r"\baccepted password for\b", re.IGNORECASE),
@@ -26,6 +27,21 @@ IP_ADDRESS_PATTERN = re.compile(
 TIMESTAMP_PATTERN = re.compile(
     r"\b\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\b"
 )
+
+# Initial rule-based severity for individual log events.
+EVENT_SEVERITY = {
+    "failed_login": "informational",
+    "successful_login": "informational",
+    "warning": "low",
+    "error": "medium",
+    "critical": "critical",
+}
+
+
+def get_event_severity(event_type: str) -> str:
+    """Return the configured severity for an event type."""
+
+    return EVENT_SEVERITY.get(event_type, "unknown")
 
 
 def extract_timestamp(log_line: str):
@@ -113,13 +129,15 @@ def analyze_log_file(
                     "timestamp": timestamp,
                     "line_number": line_number,
                     "event_type": "failed_login",
+                    "severity": get_event_severity("failed_login"),
                     "message": text,
                 })
 
                 # Count IP addresses found in failed-login lines.
                 for ip_address in IP_ADDRESS_PATTERN.findall(text):
                     source_ip_counts[ip_address] += 1
-                # Check whether the line indicates a successful login.
+
+            # Check whether the line indicates a successful login.
             is_successful_login = any(
                 pattern.search(text)
                 for pattern in SUCCESSFUL_LOGIN_PATTERNS
@@ -130,6 +148,7 @@ def analyze_log_file(
                     "timestamp": timestamp,
                     "line_number": line_number,
                     "event_type": "successful_login",
+                    "severity": get_event_severity("successful_login"),
                     "message": text,
                 })
 
@@ -145,6 +164,7 @@ def analyze_log_file(
                     "timestamp": timestamp,
                     "line_number": line_number,
                     "event_type": "warning",
+                    "severity": get_event_severity("warning"),
                     "message": text,
                 })
 
@@ -156,6 +176,7 @@ def analyze_log_file(
                     "timestamp": timestamp,
                     "line_number": line_number,
                     "event_type": "error",
+                    "severity": get_event_severity("error"),
                     "message": text,
                 })
 
@@ -166,8 +187,10 @@ def analyze_log_file(
                     "timestamp": timestamp,
                     "line_number": line_number,
                     "event_type": "critical",
+                    "severity": get_event_severity("critical"),
                     "message": text,
                 })
+
     # Detect IP addresses reaching the configured threshold.
     repeated_failed_login_ips = []
 
