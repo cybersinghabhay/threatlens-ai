@@ -148,14 +148,26 @@ def analyze_log_file(
                     "message": text,
                 })
 
-            # Count errors and critical events.
-            if re.search(
-                r"\berror\b|\bcritical\b",
-                text,
-                re.IGNORECASE,
-            ):
+            # Detect and record error and critical events.
+            if re.search(r"\berror\b", text, re.IGNORECASE):
                 error_count += 1
 
+                suspicious_events.append({
+                    "timestamp": timestamp,
+                    "line_number": line_number,
+                    "event_type": "error",
+                    "message": text,
+                })
+
+            elif re.search(r"\bcritical\b", text, re.IGNORECASE):
+                error_count += 1
+
+                suspicious_events.append({
+                    "timestamp": timestamp,
+                    "line_number": line_number,
+                    "event_type": "critical",
+                    "message": text,
+                })
     # Detect IP addresses reaching the configured threshold.
     repeated_failed_login_ips = []
 

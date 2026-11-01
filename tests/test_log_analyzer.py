@@ -371,3 +371,53 @@ def test_detect_warning_event(tmp_path):
         "2026-10-30 10:07:15 WARNING: "
         "Unusual authentication activity detected"
     )
+
+
+def test_detect_error_event(tmp_path):
+    log_file = tmp_path / "auth.log"
+
+    log_file.write_text(
+        "2026-10-30 10:08:30 ERROR: "
+        "Database connection failed\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert result["error_count"] == 1
+    assert len(result["suspicious_events"]) == 1
+
+    event = result["suspicious_events"][0]
+
+    assert event["timestamp"] == "2026-10-30T10:08:30"
+    assert event["line_number"] == 1
+    assert event["event_type"] == "error"
+    assert event["message"] == (
+        "2026-10-30 10:08:30 ERROR: "
+        "Database connection failed"
+    )
+
+
+def test_detect_critical_event(tmp_path):
+    log_file = tmp_path / "auth.log"
+
+    log_file.write_text(
+        "2026-10-30 10:09:45 CRITICAL: "
+        "Unauthorized system access detected\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_log_file(str(log_file))
+
+    assert result["error_count"] == 1
+    assert len(result["suspicious_events"]) == 1
+
+    event = result["suspicious_events"][0]
+
+    assert event["timestamp"] == "2026-10-30T10:09:45"
+    assert event["line_number"] == 1
+    assert event["event_type"] == "critical"
+    assert event["message"] == (
+        "2026-10-30 10:09:45 CRITICAL: "
+        "Unauthorized system access detected"
+    )
