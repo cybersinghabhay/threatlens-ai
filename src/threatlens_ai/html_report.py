@@ -113,6 +113,47 @@ def export_html_report(
             "</td></tr>"
         )
 
+
+    # Build rows for the chronological investigation timeline.
+    timeline_events = report.get(
+        "investigation_timeline",
+        events,
+    )
+    timeline_rows = ""
+
+    for event in timeline_events:
+        if not isinstance(event, dict):
+            continue
+
+        timestamp = html.escape(
+            str(event.get("timestamp") or "Not available")
+        )
+        line_number = html.escape(
+            str(event.get("line_number", "Not available"))
+        )
+        event_type = html.escape(
+            str(event.get("event_type", "Unknown"))
+        )
+        message = html.escape(
+            str(event.get("message", event.get("line", "Not available")))
+        )
+
+        timeline_rows += f"""
+        <tr>
+            <td>{timestamp}</td>
+            <td>{line_number}</td>
+            <td>{event_type}</td>
+            <td class="message">{message}</td>
+        </tr>
+        """
+
+    if not timeline_rows:
+        timeline_rows = (
+            '<tr><td colspan="4">'
+            "No investigation timeline events available."
+            "</td></tr>"
+        )
+
     # Build finding explanation cards.
     explained_findings = report.get("explained_findings", [])
     explanation_cards = ""
@@ -357,6 +398,28 @@ def export_html_report(
             </table>
         </div>
     </section>
+
+    <section>
+        <h2>Chronological Investigation Timeline</h2>
+        <p class="empty-state">
+            Security events arranged from earliest to latest.
+            Events without valid timestamps appear at the end.
+        </p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Log Line</th>
+                        <th>Event Type</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>{timeline_rows}</tbody>
+            </table>
+        </div>
+    </section>
+
 
     <section>
         <details>

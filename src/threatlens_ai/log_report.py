@@ -7,6 +7,9 @@ from threatlens_ai.log_analyzer import analyze_log_file
 from threatlens_ai.finding_integration import (
     explain_repeated_failed_login,
 )
+from threatlens_ai.investigation_timeline import (
+    sort_events_chronologically,
+)
 
 
 def generate_log_report(
@@ -26,6 +29,11 @@ def generate_log_report(
 
     explained_findings = explain_repeated_failed_login(
         repeated_failed_login_ips
+    )
+
+    # Sort collected security events chronologically.
+    investigation_timeline = sort_events_chronologically(
+        analysis["suspicious_events"]
     )
 
     return {
@@ -56,6 +64,7 @@ def generate_log_report(
         },
         "source_ip_counts": analysis["source_ip_counts"],
         "suspicious_events": analysis["suspicious_events"],
+        "investigation_timeline": investigation_timeline,
         "repeated_failed_login_ips": repeated_failed_login_ips,
         "explained_findings": explained_findings,
     }

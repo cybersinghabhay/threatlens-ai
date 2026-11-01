@@ -1,3 +1,4 @@
+
 import pytest
 import html
 
@@ -239,3 +240,112 @@ def test_html_report_escapes_malicious_finding_content(tmp_path):
     assert "<img src=x onerror=alert(1)>" not in content
     assert "&lt;script&gt;" in content
     assert "&lt;img" in content
+
+
+def test_html_report_displays_chronological_timeline(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "investigation_timeline": [
+            {
+                "timestamp": "2026-10-20T09:00:00",
+                "line_number": 2,
+                "event_type": "failed_login",
+                "message": "Failed login event",
+            },
+            {
+                "timestamp": "2026-10-20T10:00:00",
+                "line_number": 1,
+                "event_type": "warning",
+                "message": "Warning event",
+            },
+        ],
+    }
+
+    output_file = tmp_path / "timeline.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Chronological Investigation Timeline" in content
+    assert "2026-10-20T09:00:00" in content
+    assert "2026-10-20T10:00:00" in content
+    assert "Failed login event" in content
+    assert "Warning event" in content
+
+    assert content.index(
+        "Failed login event"
+    ) < content.index("Warning event")
+
+
+def test_html_report_displays_events_without_timestamps(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "investigation_timeline": [
+            {
+                "timestamp": None,
+                "line_number": 3,
+                "event_type": "warning",
+                "message": "Event without timestamp",
+            }
+        ],
+    }
+
+    output_file = tmp_path / "timeline.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Not available" in content
+    assert "Event without timestamp" in content
+
+
+def test_html_report_escapes_malicious_timeline_fields(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "investigation_timeline": [
+            {
+                "timestamp": "<script>alert(1)</script>",
+                "line_number": 1,
+                "event_type": "<img src=x onerror=alert(1)>",
+                "message": "<script>malicious()</script>",
+            }
+        ],
+    }
+
+    output_file = tmp_path / "safe_timeline.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "<script>alert(1)</script>" not in content
+    assert "<img src=x onerror=alert(1)>" not in content
+    assert "<script>malicious()</script>" not in content
+
+    assert "&lt;script&gt;" in content
+    assert "&lt;img" in content
+
+
+def test_html_report_falls_back_to_suspicious_events(tmp_path):
+    report = {
+        "report_type": "security_log_analysis",
+        "suspicious_events": [
+            {
+                "timestamp": "2026-10-20T09:00:00",
+                "line_number": 4,
+                "event_type": "failed_login",
+                "message": "Legacy report event",
+            }
+        ],
+    }
+
+    output_file = tmp_path / "legacy_report.html"
+
+    export_html_report(report, str(output_file))
+
+    content = output_file.read_text(encoding="utf-8")
+
+    assert "Legacy report event" in content
+    assert "Chronological Investigation Timeline" in content

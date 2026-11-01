@@ -1,5 +1,7 @@
-import pytest
+
 import json
+
+import pytest
 
 from threatlens_ai.log_report import (
     export_log_report,
@@ -55,6 +57,7 @@ def test_export_log_report_to_json(tmp_path):
     )
     assert saved_report == report
 
+
 def test_export_log_report_does_not_overwrite_source_log(tmp_path):
     source = tmp_path / "auth.log"
     original_content = (
@@ -72,3 +75,108 @@ def test_export_log_report_does_not_overwrite_source_log(tmp_path):
         export_log_report(report, str(source))
 
     assert source.read_text(encoding="utf-8") == original_content
+
+
+def test_log_report_contains_chronological_investigation_timeline(
+    tmp_path,
+):
+    log_file = tmp_path / "auth.log"
+
+    log_file.write_text(
+        "2026-10-20 10:00:00 WARNING: unusual activity\n"
+        "2026-10-20 09:00:00 Failed password for admin from 192.0.2.10\n"
+        "2026-10-20 11:00:00 ERROR: service unavailable\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(str(log_file))
+
+    timeline = report["investigation_timeline"]
+
+    assert len(timeline) == 3
+    assert [
+        event["event_type"] for event in timeline
+    ] == [
+        "failed_login",
+        "warning",
+        "error",
+    ]
+
+    assert [
+        event["timestamp"] for event in timeline
+    ] == [
+        "2026-10-20T09:00:00",
+        "2026-10-20T10:00:00",
+        "2026-10-20T11:00:00",
+    ]
+
+
+def test_log_report_preserves_original_suspicious_event_order(
+    tmp_path,
+):
+    log_file = tmp_path / "auth.log"
+
+    log_file.write_text(
+        "2026-10-20 11:00:00 WARNING: unusual activity\n"
+        "2026-10-20 09:00:00 ERROR: service unavailable\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(str(log_file))
+
+    original_events = report["suspicious_events"]
+    timeline = report["investigation_timeline"]
+
+    assert original_events[0]["event_type"] == "warning"
+    assert original_events[1]["event_type"] == "error"
+
+    assert timeline[0]["event_type"] == "error"
+    assert timeline[1]["event_type"] == "warning"
+
+
+def test_log_report_places_missing_timestamps_at_the_end(
+    tmp_path,
+):
+    log_file = tmp_path / "auth.log"
+
+    log_file.write_text(
+        "WARNING: event without timestamp\n"
+        "2026-10-20 09:00:00 ERROR: timestamped event\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(str(log_file))
+
+    timeline = report["investigation_timeline"]
+
+    assert timeline[0]["event_type"] == "error"
+    assert timeline[1]["event_type"] == "warning"
+    assert timeline[1]["timestamp"] is None
+
+
+def test_exported_json_contains_investigation_timeline(tmp_path):
+    log_file = tmp_path / "auth.log"
+
+    log_file.write_text(
+        "2026-10-20 11:00:00 WARNING: unusual activity\n"
+        "2026-10-20 09:00:00 ERROR: service unavailable\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(str(log_file))
+
+    output_file = tmp_path / "security_report.json"
+
+    export_log_report(report, str(output_file))
+
+    saved_report = json.loads(
+        output_file.read_text(encoding="utf-8")
+    )
+
+    assert "investigation_timeline" in saved_report
+    assert len(saved_report["investigation_timeline"]) == 2
+
+    assert (
+        saved_report["investigation_timeline"][0]["event_type"]
+        == "error"
+    )
