@@ -273,3 +273,51 @@ def test_log_report_contains_filtered_event_count(tmp_path):
 
     assert report["summary"]["suspicious_event_count"] == 2
     assert report["summary"]["filtered_event_count"] == 1
+
+
+def test_log_report_contains_threat_context(tmp_path):
+    """Verify that the report includes offline threat context."""
+
+    log_file = tmp_path / "security.log"
+
+    log_file.write_text(
+        "2026-10-30 10:00:00 Failed password for admin "
+        "from 192.0.2.10 port 22 ssh2\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(
+        str(log_file),
+        failed_login_threshold=1,
+    )
+
+    assert "threat_context" in report
+    assert isinstance(report["threat_context"], dict)
+    assert report["threat_context"]["is_ai_generated"] is False
+
+
+def test_exported_json_contains_threat_context(tmp_path):
+    """Verify that exported JSON retains threat context."""
+
+    log_file = tmp_path / "security.log"
+    output_file = tmp_path / "security_report.json"
+
+    log_file.write_text(
+        "2026-10-30 10:00:00 Failed password for admin "
+        "from 192.0.2.10 port 22 ssh2\n",
+        encoding="utf-8",
+    )
+
+    report = generate_log_report(
+        str(log_file),
+        failed_login_threshold=1,
+    )
+
+    export_log_report(report, str(output_file))
+
+    exported_report = json.loads(
+        output_file.read_text(encoding="utf-8")
+    )
+
+    assert "threat_context" in exported_report
+    assert exported_report["threat_context"]["is_ai_generated"] is False

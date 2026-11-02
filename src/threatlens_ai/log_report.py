@@ -15,6 +15,7 @@ from threatlens_ai.severity_filter import (
     filter_findings_by_severity,
     validate_severity_filter,
 )
+from threatlens_ai.threat_context import generate_threat_context
 
 
 def generate_log_report(
@@ -27,6 +28,7 @@ def generate_log_report(
     # Validate the requested severity filter.
     selected_severity = validate_severity_filter(severity)
 
+    # Analyze the source security log.
     analysis = analyze_log_file(
         log_path,
         failed_login_threshold=failed_login_threshold,
@@ -36,6 +38,7 @@ def generate_log_report(
         "repeated_failed_login_ips"
     ]
 
+    # Generate explanations for detected findings.
     explained_findings = explain_repeated_failed_login(
         repeated_failed_login_ips
     )
@@ -59,6 +62,13 @@ def generate_log_report(
         selected_severity,
     )
 
+    # Generate offline, rule-based threat context.
+    # This provides additional interpretation of events and findings.
+    threat_context = generate_threat_context(
+        suspicious_events,
+        explained_findings,
+    )
+
     return {
         "report_type": "security_log_analysis",
         "generated_at_utc": datetime.now(
@@ -66,6 +76,7 @@ def generate_log_report(
         ).isoformat(),
         "file_path": analysis["file_path"],
         "severity_filter": selected_severity,
+
         "summary": {
             "total_lines": analysis["total_lines"],
             "failed_login_count": analysis[
@@ -92,13 +103,21 @@ def generate_log_report(
                 "failed_login_threshold"
             ],
         },
+
         "source_ip_counts": analysis["source_ip_counts"],
+
+        # Original evidence and investigation data.
         "suspicious_events": suspicious_events,
         "investigation_timeline": investigation_timeline,
         "filtered_events": filtered_events,
+
+        # Detected findings and their explanations.
         "repeated_failed_login_ips": repeated_failed_login_ips,
         "explained_findings": explained_findings,
         "filtered_findings": filtered_findings,
+
+        # Additional offline threat interpretation.
+        "threat_context": threat_context,
     }
 
 
@@ -113,6 +132,7 @@ def export_log_report(
 
     source_path = report.get("file_path")
 
+    # Prevent accidentally overwriting the original security log.
     if source_path is not None:
         report_source = Path(source_path).resolve()
 
@@ -122,6 +142,7 @@ def export_log_report(
                 "the source log file."
             )
 
+    # Export the structured report as formatted JSON.
     report_file.write_text(
         json.dumps(report, indent=4),
         encoding="utf-8",

@@ -37,13 +37,18 @@ def export_html_report(
     summary = report.get("summary", {})
     report_type = report.get("report_type", "security_report")
     title = "ThreatLens AI Security Report"
+
     generated_at = report.get(
         "generated_at_utc",
         report.get("checked_at_utc", "Not provided"),
     )
+
     source_file = report.get("file_path", "Not provided")
 
+    # ---------------------------------------------------------
     # Build summary cards.
+    # ---------------------------------------------------------
+
     summary_cards = ""
 
     for label, key in [
@@ -64,7 +69,10 @@ def export_html_report(
         </div>
         """
 
+    # ---------------------------------------------------------
     # Build rows for repeated failed-login IPs.
+    # ---------------------------------------------------------
+
     repeated_ips = report.get("repeated_failed_login_ips", [])
     repeated_ip_rows = ""
 
@@ -74,10 +82,12 @@ def export_html_report(
                 "ip_address",
                 item.get("ip", "Unknown"),
             )
+
             count_value = item.get(
                 "failed_login_count",
                 item.get("count", "Unknown"),
             )
+
             severity_value = item.get("severity", "Unknown")
 
             ip = html.escape(str(ip_value))
@@ -107,7 +117,10 @@ def export_html_report(
             "</td></tr>"
         )
 
+    # ---------------------------------------------------------
     # Build rows for suspicious events.
+    # ---------------------------------------------------------
+
     events = report.get("suspicious_events", [])
     event_rows = ""
 
@@ -115,10 +128,20 @@ def export_html_report(
         if not isinstance(event, dict):
             continue
 
-        line_number = html.escape(str(event.get("line_number", "—")))
-        event_type = html.escape(str(event.get("event_type", "Not provided")))
-        severity_value = get_safe_severity(event.get("severity"))
+        line_number = html.escape(
+            str(event.get("line_number", "—"))
+        )
+
+        event_type = html.escape(
+            str(event.get("event_type", "Not provided"))
+        )
+
+        severity_value = get_safe_severity(
+            event.get("severity")
+        )
+
         safe_severity = html.escape(severity_value)
+
         message = html.escape(
             str(event.get("message", event.get("line", "—")))
         )
@@ -139,11 +162,15 @@ def export_html_report(
             "</td></tr>"
         )
 
-    # Build rows for the chronological investigation timeline.
+    # ---------------------------------------------------------
+    # Build chronological investigation timeline.
+    # ---------------------------------------------------------
+
     timeline_events = report.get(
         "investigation_timeline",
         events,
     )
+
     timeline_rows = ""
 
     for event in timeline_events:
@@ -153,14 +180,21 @@ def export_html_report(
         timestamp = html.escape(
             str(event.get("timestamp") or "Not available")
         )
+
         line_number = html.escape(
             str(event.get("line_number", "Not available"))
         )
+
         event_type = html.escape(
             str(event.get("event_type", "Unknown"))
         )
-        severity_value = get_safe_severity(event.get("severity"))
+
+        severity_value = get_safe_severity(
+            event.get("severity")
+        )
+
         safe_severity = html.escape(severity_value)
+
         message = html.escape(
             str(event.get("message", event.get("line", "Not available")))
         )
@@ -182,7 +216,10 @@ def export_html_report(
             "</td></tr>"
         )
 
+    # ---------------------------------------------------------
     # Build finding explanation cards.
+    # ---------------------------------------------------------
+
     explained_findings = report.get("explained_findings", [])
     explanation_cards = ""
 
@@ -194,25 +231,29 @@ def export_html_report(
             "ip_address",
             finding.get("ip", "Not provided"),
         )
+
         count_value = finding.get(
             "failed_login_count",
             finding.get("count", "Not provided"),
         )
 
         event_type = html.escape(
-             str(finding.get("event_type", "Not provided"))
+            str(finding.get("event_type", "Not provided"))
         )
+
         ip = html.escape(str(ip_value))
         count = html.escape(str(count_value))
 
         severity_value = get_safe_severity(
             finding.get("severity")
         )
+
         severity = html.escape(severity_value)
 
         explanation = html.escape(
             str(finding.get("explanation", "No explanation provided."))
         )
+
         recommended_action = html.escape(
             str(
                 finding.get(
@@ -223,12 +264,16 @@ def export_html_report(
         )
 
         is_ai_generated = finding.get("is_ai_generated", False)
+
         explanation_source = (
             "AI-generated"
             if is_ai_generated is True
             else "Rule-based"
         )
-        safe_explanation_source = html.escape(explanation_source)
+
+        safe_explanation_source = html.escape(
+            explanation_source
+        )
 
         explanation_cards += f"""
         <div class="finding-card" data-severity="{severity}">
@@ -236,12 +281,15 @@ def export_html_report(
                 <h3>{event_type}</h3>
                 <span class="severity">{severity.title()}</span>
             </div>
+
             <p><strong>Source IP:</strong> {ip}</p>
             <p><strong>Failed login attempts:</strong> {count}</p>
             <p><strong>Explanation:</strong> {explanation}</p>
+
             <p><strong>Recommended action:</strong>
                 {recommended_action}
             </p>
+
             <p class="explanation-source">
                 <strong>Explanation type:</strong>
                 {safe_explanation_source}
@@ -256,15 +304,198 @@ def export_html_report(
             "</p>"
         )
 
-    # Escape report metadata before inserting it into HTML.
+    # ---------------------------------------------------------
+    # Build offline threat context section.
+    # ---------------------------------------------------------
+
+    threat_context = report.get("threat_context", {})
+
+    threat_event_contexts = threat_context.get(
+        "event_contexts",
+        [],
+    )
+
+    threat_finding_contexts = threat_context.get(
+        "finding_contexts",
+        [],
+    )
+
+    threat_event_cards = ""
+
+    for context in threat_event_contexts:
+        if not isinstance(context, dict):
+            continue
+
+        event_type = html.escape(
+            str(context.get("event_type", "Not provided"))
+        )
+
+        severity = html.escape(
+            get_safe_severity(context.get("severity"))
+        )
+
+        interpretation = html.escape(
+            str(
+                context.get(
+                    "interpretation",
+                    context.get(
+                        "explanation",
+                        "No interpretation provided.",
+                    ),
+                )
+            )
+        )
+
+        source_ip = html.escape(
+            str(context.get("source_ip", "Not provided"))
+        )
+
+        ip_context = context.get("ip_context", {})
+
+        if not isinstance(ip_context, dict):
+            ip_context = {}
+
+        ip_category = html.escape(
+            str(ip_context.get("category", "Not available"))
+        )
+
+        ip_explanation = html.escape(
+            str(
+                ip_context.get(
+                    "explanation",
+                    ip_context.get(
+                        "message",
+                        "No IP context available.",
+                    ),
+                )
+            )
+        )
+
+        threat_event_cards += f"""
+        <div class="context-card" data-severity="{severity}">
+            <div class="finding-header">
+                <h3>{event_type}</h3>
+                <span class="severity">{severity.title()}</span>
+            </div>
+
+            <p><strong>Source IP:</strong> {source_ip}</p>
+
+            <p><strong>IP classification:</strong>
+                {ip_category}
+            </p>
+
+            <p><strong>IP context:</strong>
+                {ip_explanation}
+            </p>
+
+            <p><strong>Event interpretation:</strong>
+                {interpretation}
+            </p>
+        </div>
+        """
+
+    if not threat_event_cards:
+        threat_event_cards = (
+            '<p class="empty-state">'
+            "No event threat context available."
+            "</p>"
+        )
+
+    threat_finding_cards = ""
+
+    for context in threat_finding_contexts:
+        if not isinstance(context, dict):
+            continue
+
+        event_type = html.escape(
+            str(context.get("event_type", "Not provided"))
+        )
+
+        severity = html.escape(
+            get_safe_severity(context.get("severity"))
+        )
+
+        interpretation = html.escape(
+            str(
+                context.get(
+                    "interpretation",
+                    context.get(
+                        "explanation",
+                        "No interpretation provided.",
+                    ),
+                )
+            )
+        )
+
+        recommended_action = html.escape(
+            str(
+                context.get(
+                    "recommended_action",
+                    "No recommended action provided.",
+                )
+            )
+        )
+
+        threat_finding_cards += f"""
+        <div class="context-card" data-severity="{severity}">
+            <div class="finding-header">
+                <h3>{event_type}</h3>
+                <span class="severity">{severity.title()}</span>
+            </div>
+
+            <p><strong>Interpretation:</strong>
+                {interpretation}
+            </p>
+
+            <p><strong>Recommended action:</strong>
+                {recommended_action}
+            </p>
+        </div>
+        """
+
+    if not threat_finding_cards:
+        threat_finding_cards = (
+            '<p class="empty-state">'
+            "No finding threat context available."
+            "</p>"
+        )
+
+    context_assessment = html.escape(
+        str(
+            threat_context.get(
+                "assessment_note",
+                "Threat context is informational and requires verification.",
+            )
+        )
+    )
+
+    context_is_ai_generated = (
+        threat_context.get("is_ai_generated", False)
+    )
+
+    context_source = (
+        "AI-generated"
+        if context_is_ai_generated is True
+        else "Offline rule-based analysis"
+    )
+
+    safe_context_source = html.escape(context_source)
+
+    # ---------------------------------------------------------
+    # Escape report metadata and JSON.
+    # ---------------------------------------------------------
+
     safe_report_type = html.escape(str(report_type))
     safe_generated_at = html.escape(str(generated_at))
     safe_source_file = html.escape(str(source_file))
 
-    # Include a safely escaped JSON view of the complete report.
     safe_json = html.escape(
         json.dumps(report, indent=4, ensure_ascii=False)
     )
+
+    # ---------------------------------------------------------
+    # Build standalone HTML dashboard.
+    # ---------------------------------------------------------
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -347,7 +578,8 @@ def export_html_report(
 
         .message {{ overflow-wrap: anywhere; }}
 
-        .finding-card {{
+        .finding-card,
+        .context-card {{
             background: #f7f9fc;
             border: 1px solid #dce2ea;
             border-left: 4px solid #315b91;
@@ -492,6 +724,30 @@ def export_html_report(
     </section>
 
     <section>
+        <h2>Offline Threat Context Analysis</h2>
+
+        <p><strong>Analysis type:</strong> {safe_context_source}</p>
+
+        <p>{context_assessment}</p>
+
+        <h3>Event Context</h3>
+        <div id="threat-event-container">
+            {threat_event_cards}
+        </div>
+
+        <h3>Finding Context</h3>
+        <div id="threat-finding-container">
+            {threat_finding_cards}
+        </div>
+
+        <p class="empty-state">
+            Threat context provides rule-based interpretation.
+            It does not independently establish malicious activity.
+            Verify findings against original logs and other evidence.
+        </p>
+    </section>
+
+    <section>
         <h2>Suspicious Events</h2>
 
         <div class="table-wrap">
@@ -563,7 +819,9 @@ def export_html_report(
             const filteredElements = document.querySelectorAll(
                 "#event-container tr[data-severity], " +
                 "#timeline-container tr[data-severity], " +
-                "#finding-container [data-severity]"
+                "#finding-container [data-severity], " +
+                "#threat-event-container [data-severity], " +
+                "#threat-finding-container [data-severity]"
             );
 
             let visibleCount = 0;
@@ -599,7 +857,10 @@ def export_html_report(
 </html>
 """
 
-    # Prevent the HTML report from overwriting its source security log.
+    # ---------------------------------------------------------
+    # Prevent overwriting the source security log.
+    # ---------------------------------------------------------
+
     report_file = Path(output_path)
     report_destination = report_file.resolve()
     source_path = report.get("file_path")

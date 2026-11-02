@@ -349,3 +349,86 @@ def test_html_report_falls_back_to_suspicious_events(tmp_path):
 
     assert "Legacy report event" in content
     assert "Chronological Investigation Timeline" in content
+
+
+def test_html_report_displays_threat_context(tmp_path):
+    """Verify that HTML reports display offline threat context."""
+
+    report = {
+        "report_type": "security_log_analysis",
+        "threat_context": {
+            "is_ai_generated": False,
+            "assessment_note": "Context requires investigation.",
+            "event_contexts": [
+                {
+                    "event_type": "failed_login",
+                    "severity": "informational",
+                    "source_ip": "192.0.2.10",
+                    "interpretation": "A failed login attempt was observed.",
+                    "ip_context": {
+                        "category": "documentation",
+                        "explanation": "This is a documentation IP address.",
+                    },
+                }
+            ],
+            "finding_contexts": [
+                {
+                    "event_type": "repeated_failed_login",
+                    "severity": "medium",
+                    "interpretation": "Repeated failed login attempts were observed.",
+                    "recommended_action": "Review authentication logs.",
+                }
+            ],
+        },
+    }
+
+    output_file = tmp_path / "threat_context_report.html"
+
+    export_html_report(report, str(output_file))
+
+    html_content = output_file.read_text(encoding="utf-8")
+
+    assert "Offline Threat Context Analysis" in html_content
+    assert "Event Context" in html_content
+    assert "Finding Context" in html_content
+    assert "documentation" in html_content
+    assert "A failed login attempt was observed." in html_content
+    assert "Review authentication logs." in html_content
+    assert "Offline rule-based analysis" in html_content
+
+
+def test_html_report_escapes_malicious_threat_context(tmp_path):
+    """Verify that threat context cannot inject HTML or scripts."""
+
+    malicious_value = '<script>alert("xss")</script>'
+
+    report = {
+        "report_type": "security_log_analysis",
+        "threat_context": {
+            "is_ai_generated": False,
+            "assessment_note": malicious_value,
+            "event_contexts": [
+                {
+                    "event_type": malicious_value,
+                    "severity": "medium",
+                    "source_ip": "192.0.2.10",
+                    "interpretation": malicious_value,
+                    "ip_context": {
+                        "category": "documentation",
+                        "explanation": malicious_value,
+                    },
+                }
+            ],
+            "finding_contexts": [],
+        },
+    }
+
+    output_file = tmp_path / "safe_threat_context_report.html"
+
+    export_html_report(report, str(output_file))
+
+    html_content = output_file.read_text(encoding="utf-8")
+
+    assert malicious_value not in html_content
+    assert "&lt;script&gt;" in html_content
+    assert "&lt;/script&gt;" in html_content
