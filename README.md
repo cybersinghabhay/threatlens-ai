@@ -3,7 +3,7 @@
 ### AI-Ready Cybersecurity Investigation & Threat Analysis Toolkit
 
 <p align="center">
-  **Detect. Analyze. Investigate. Understand.**
+  <strong>Detect. Analyze. Investigate. Understand.</strong>
 </p>
 
 <p align="center">
@@ -11,12 +11,15 @@
 </p>
 
 <p align="center">
-  ![Python](https://img.shields.io/badge/Python-3.14-blue?logo=python&logoColor=white)
-  ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue)
-  ![License](https://img.shields.io/badge/License-MIT-green)
-  ![Tests](https://img.shields.io/badge/Tests-116%20Passing-brightgreen)
-  ![Status](https://img.shields.io/badge/Status-Active%20Development-orange)
+  <img src="https://img.shields.io/badge/Python-3.14-blue?logo=python&logoColor=white" alt="Python 3.14">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Windows and Linux">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
+  <img src="https://img.shields.io/badge/Tests-116%20Passing-brightgreen" alt="116 passing tests">
+  <img src="https://img.shields.io/badge/Status-Active%20Development-orange" alt="Active development">
 </p>
+
+---
+
 
 ---
 
