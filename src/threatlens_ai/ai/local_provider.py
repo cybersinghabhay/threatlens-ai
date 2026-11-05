@@ -4,16 +4,22 @@ import math
 
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from threatlens_ai.ai.base import BaseAIProvider
 
 
+class NoRedirectHandler(HTTPRedirectHandler):
+    """Prevent HTTP requests from following redirects."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class LocalAIProvider(BaseAIProvider):
-    """
-    Connects ThreatLens AI to a locally running,
-    OpenAI-compatible AI server.
-    """
+    """Communicate with a local OpenAI-compatible AI server."""
+
+    MAX_RESPONSE_SIZE = 1024 * 1024  # 1 MiB
 
     def __init__(
         self,
@@ -37,10 +43,8 @@ class LocalAIProvider(BaseAIProvider):
             raise ValueError("Timeout must be a positive finite number.")
 
     def _validate_endpoint(self) -> None:
-        """
-        Allow HTTP connections only to loopback addresses.
-        This prevents accidental requests to remote servers.
-        """
+        """Allow only HTTP endpoints using literal loopback addresses."""
+
         if not isinstance(self.endpoint, str):
             raise ValueError("Endpoint must be a valid localhost URL.")
 
@@ -50,13 +54,15 @@ class LocalAIProvider(BaseAIProvider):
         except ValueError:
             raise ValueError("Invalid AI endpoint URL.") from None
 
-        allowed_hosts = {"127.0.0.1", "localhost", "::1"}
+        # Literal loopback addresses only.
+        # Avoid accepting 'localhost', whose resolution can be altered.
+        allowed_hosts = {"127.0.0.1", "::1"}
 
         if parsed.scheme != "http":
             raise ValueError("Only HTTP localhost endpoints are allowed.")
 
         if parsed.hostname not in allowed_hosts:
-            raise ValueError("The AI endpoint must use a localhost address.")
+            raise ValueError("The AI endpoint must use a loopback IP address.")
 
         if parsed.username or parsed.password:
             raise ValueError("Credentials are not allowed in the endpoint URL.")
@@ -71,11 +77,72 @@ class LocalAIProvider(BaseAIProvider):
             raise ValueError("The endpoint must specify a valid port.")
 
     def analyze(self, prompt: str) -> str:
-        """
-        Analyze a prompt using the local AI provider.
+        """Send an explicitly supplied prompt to the local AI server."""
 
-        Network communication will be implemented next.
-        """
-        raise NotImplementedError(
-            "Local AI analysis has not been implemented yet."
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("Prompt must be a non-empty string.")
+
+        self._validate_endpoint()
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+        }
+
+        request_body = json.dumps(payload).encode("utf-8")
+
+        request = Request(
+            self.endpoint,
+            data=request_body,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
         )
+
+        try:
+            # Create an opener that refuses HTTP redirects.
+            opener = build_opener(NoRedirectHandler())
+
+            with opener.open(request, timeout=self.timeout) as response:
+                response_body = response.read(self.MAX_RESPONSE_SIZE + 1)
+
+        except HTTPError:
+            raise RuntimeError(
+                "The local AI server returned an HTTP error."
+            ) from None
+
+        except (URLError, TimeoutError, OSError):
+            raise RuntimeError(
+                "Could not communicate with the local AI server."
+            ) from None
+
+        if len(response_body) > self.MAX_RESPONSE_SIZE:
+            raise RuntimeError("The local AI response exceeded the size limit.")
+
+        try:
+            result = json.loads(response_body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise RuntimeError(
+                "The local AI server returned an invalid JSON response."
+            ) from None
+
+        try:
+            content = result["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            raise RuntimeError(
+                "The local AI server returned an unexpected response structure."
+            ) from None
+
+        if not isinstance(content, str) or not content.strip():
+            raise RuntimeError(
+                "The local AI server returned an empty or invalid response."
+            )
+
+        return content
