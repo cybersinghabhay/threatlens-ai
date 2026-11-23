@@ -22,13 +22,18 @@ def generate_log_report(
     log_path: str,
     failed_login_threshold: int = 5,
     severity: str = "all",
+    ai_analyzer=None,
 ) -> dict:
-    """Generate a structured security log analysis report."""
+    """Generate a structured security log analysis report.
+
+    AI analysis is optional and supplements deterministic findings.
+    Only minimized finding data is passed to the AI analyzer.
+    """
 
     # Validate the requested severity filter.
     selected_severity = validate_severity_filter(severity)
 
-    # Analyze the source security log.
+    # Analyze the source security log using deterministic rules.
     analysis = analyze_log_file(
         log_path,
         failed_login_threshold=failed_login_threshold,
@@ -38,10 +43,49 @@ def generate_log_report(
         "repeated_failed_login_ips"
     ]
 
-    # Generate explanations for detected findings.
+    # Generate deterministic explanations for detected findings.
     explained_findings = explain_repeated_failed_login(
         repeated_failed_login_ips
     )
+
+    # Prepare a minimized set of findings for optional AI analysis.
+    # IP addresses and other identifying or raw log data are excluded.
+    if ai_analyzer is not None:
+        analyze_method = getattr(
+            ai_analyzer,
+            "analyze_findings",
+            None,
+        )
+
+        if not callable(analyze_method):
+            raise TypeError(
+                "AI analyzer must provide a callable "
+                "analyze_findings() method."
+            )
+
+        ai_findings = [
+            {
+                "event_type": "repeated_failed_login",
+                "severity": finding.get("severity", "unknown"),
+                "failed_login_count": finding.get(
+                    "failed_login_count"
+                ),
+            }
+            for finding in repeated_failed_login_ips
+        ]
+
+        ai_analysis = analyze_method(ai_findings)
+
+    else:
+        # Keep the report structure predictable when AI is disabled.
+        ai_analysis = {
+            "status": "disabled",
+            "is_ai_generated": False,
+            "ai_analysis": None,
+            "findings": [],
+            "error": None,
+            "sanitized_finding_count": 0,
+        }
 
     # Preserve the complete collection of detected events.
     suspicious_events = analysis["suspicious_events"]
@@ -63,7 +107,6 @@ def generate_log_report(
     )
 
     # Generate offline, rule-based threat context.
-    # This provides additional interpretation of events and findings.
     threat_context = generate_threat_context(
         suspicious_events,
         explained_findings,
@@ -111,10 +154,13 @@ def generate_log_report(
         "investigation_timeline": investigation_timeline,
         "filtered_events": filtered_events,
 
-        # Detected findings and their explanations.
+        # Detected findings and deterministic explanations.
         "repeated_failed_login_ips": repeated_failed_login_ips,
         "explained_findings": explained_findings,
         "filtered_findings": filtered_findings,
+
+        # Optional AI explanation, kept separate from original evidence.
+        "ai_analysis": ai_analysis,
 
         # Additional offline threat interpretation.
         "threat_context": threat_context,
