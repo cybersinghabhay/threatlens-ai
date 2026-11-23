@@ -20,6 +20,10 @@ from threatlens_ai.log_report import (
 )
 from threatlens_ai.finding_explainer import explain_finding
 
+from threatlens_ai.ai.analyzer import AIAnalyzer
+from threatlens_ai.ai.factory import create_ai_provider
+
+
 def main():
     """Run the ThreatLens AI command-line interface."""
 
@@ -42,8 +46,9 @@ def main():
         print("9. Analyze a security log file")
         print("10. Export security log analysis report to JSON")
         print("11. Explain a security finding")
+        print("12. Analyze a security log with Local AI")
 
-        choice = input("\nEnter your choice (1-11): ").strip()
+        choice = input("\nEnter your choice (1-12): ").strip()
 
         try:
             if choice == "1":
@@ -360,9 +365,72 @@ def main():
                         f"AI-generated: {explanation['is_ai_generated']}"
                     )
 
+            elif choice == "12":
+                print("\nSecurity Log Analysis with Local AI")
+                print("=" * 40)
+
+                log_path = input(
+                    "Enter security log file path: "
+                ).strip()
+
+                threshold_input = input(
+                    "Failed-login alert threshold (default: 5): "
+                ).strip()
+
+                threshold = (
+                    int(threshold_input)
+                    if threshold_input
+                    else 5
+                )
+
+                provider = create_ai_provider(
+                    provider_type="local",
+                    model="gemma-3-1b-it",
+                    timeout=120,
+                )
+
+                ai_analyzer = AIAnalyzer(provider)
+
+                report = generate_log_report(
+                    log_path,
+                    failed_login_threshold=threshold,
+                    ai_analyzer=ai_analyzer,
+                )
+
+                print("\nDeterministic Security Analysis")
+                print("-" * 40)
+                print(
+                    "Failed login events: "
+                    f"{report['summary']['failed_login_count']}"
+                )
+                print(
+                    "Repeated failed-login IPs: "
+                    f"{report['summary']['repeated_failed_login_ip_count']}"
+                )
+
+                print("\nLocal AI Analysis")
+                print("-" * 40)
+
+                ai_result = report["ai_analysis"]
+
+                print(f"Status: {ai_result['status']}")
+
+                if ai_result["ai_analysis"]:
+                    print(ai_result["ai_analysis"])
+                elif ai_result["error"]:
+                    print(ai_result["error"])
+                else:
+                    print("No findings required AI explanation.")
+
+                print(
+                    "\nNote: AI provides an explanation of detected "
+                    "indicators. Rule-based analysis remains the source "
+                    "of the security findings."
+                )
+
             else:
                 print(
-                    "Invalid choice. Please enter a number from 1 to 11."
+                    "Invalid choice. Please enter a number from 1 to 12."
                 )
 
         except (OSError, ValueError, KeyError) as error:
