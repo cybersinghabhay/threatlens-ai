@@ -383,8 +383,10 @@ def main():
                     else 5
                 )
 
+                # Connect through the Windows loopback port forwarded to Kali.
                 provider = create_ai_provider(
                     provider_type="local",
+                    endpoint="http://127.0.0.1:18080/v1/chat/completions",
                     model="gemma-3-1b-it",
                     timeout=120,
                 )
