@@ -365,3 +365,88 @@ def test_redirect_handler_is_passed_to_opener(monkeypatch):
         isinstance(handler, NoRedirectHandler)
         for handler in captured_handlers
     )
+
+
+def test_api_key_is_read_from_environment(monkeypatch):
+    """Load the API key securely from the environment."""
+
+    monkeypatch.setenv("THREATLENS_AI_API_KEY", "synthetic-test-key")
+
+    response_data = {
+        "choices": [
+            {"message": {"content": "Authenticated response."}}
+        ]
+    }
+
+    mock_opener = mock_successful_opener(
+        monkeypatch,
+        json.dumps(response_data).encode("utf-8"),
+    )
+
+    provider = LocalAIProvider()
+    result = provider.analyze("Synthetic authentication test.")
+
+    assert result == "Authenticated response."
+    assert mock_opener.request.get_header("Authorization") == (
+        "Bearer synthetic-test-key"
+    )
+
+
+def test_explicit_api_key_is_sent_in_authorization_header(monkeypatch):
+    """Use an explicitly supplied key for authentication."""
+
+    response_data = {
+        "choices": [
+            {"message": {"content": "Authenticated response."}}
+        ]
+    }
+
+    mock_opener = mock_successful_opener(
+        monkeypatch,
+        json.dumps(response_data).encode("utf-8"),
+    )
+
+    provider = LocalAIProvider(api_key="synthetic-explicit-key")
+    provider.analyze("Synthetic authentication test.")
+
+    assert mock_opener.request.get_header("Authorization") == (
+        "Bearer synthetic-explicit-key"
+    )
+
+
+def test_authorization_header_is_omitted_without_api_key(monkeypatch):
+    """Preserve compatibility with servers that do not require authentication."""
+
+    monkeypatch.delenv("THREATLENS_AI_API_KEY", raising=False)
+
+    response_data = {
+        "choices": [
+            {"message": {"content": "Unauthenticated test response."}}
+        ]
+    }
+
+    mock_opener = mock_successful_opener(
+        monkeypatch,
+        json.dumps(response_data).encode("utf-8"),
+    )
+
+    provider = LocalAIProvider()
+    provider.analyze("Synthetic compatibility test.")
+
+    assert mock_opener.request.get_header("Authorization") is None
+
+
+@pytest.mark.parametrize(
+    "api_key",
+    [
+        "",
+        "   ",
+        123,
+        True,
+    ],
+)
+def test_rejects_invalid_api_keys(api_key):
+    """Reject empty or incorrectly typed API keys."""
+
+    with pytest.raises(ValueError, match="API key"):
+        LocalAIProvider(api_key=api_key)

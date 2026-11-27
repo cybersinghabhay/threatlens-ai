@@ -1,6 +1,7 @@
 
 import json
 import math
+import os
 
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
@@ -26,10 +27,22 @@ class LocalAIProvider(BaseAIProvider):
         endpoint: str = "http://127.0.0.1:8080/v1/chat/completions",
         model: str = "local-model",
         timeout: int = 30,
+        api_key: str | None = None,
     ):
         self.endpoint = endpoint
         self.model = model
         self.timeout = timeout
+
+        # Read the API key from the environment unless explicitly supplied.
+        self.api_key = (
+            os.environ.get("THREATLENS_AI_API_KEY")
+            if api_key is None
+            else api_key
+        )
+
+        if self.api_key is not None:
+            if not isinstance(self.api_key, str) or not self.api_key.strip():
+                raise ValueError("API key must be a non-empty string.")
 
         if not isinstance(self.model, str) or not self.model.strip():
             raise ValueError("Model name must be a non-empty string.")
@@ -96,13 +109,19 @@ class LocalAIProvider(BaseAIProvider):
 
         request_body = json.dumps(payload).encode("utf-8")
 
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        # Authenticate only when an API key is configured.
+        if self.api_key is not None:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
         request = Request(
             self.endpoint,
             data=request_body,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
+            headers=headers,
             method="POST",
         )
 
